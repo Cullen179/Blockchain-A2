@@ -77,7 +77,7 @@ export class Block implements IBlock {
       validatorSignature: this.validatorSignature || ''
     };
 
-    return JSON.stringify(this, Object.keys(this).sort());
+    return JSON.stringify(hashData, Object.keys(hashData).sort());
   }
 
   /**
@@ -123,5 +123,72 @@ export class Block implements IBlock {
    */
   private isValidHexString(str: string): boolean {
     return /^[0-9a-fA-F]+$/.test(str);
+  }
+
+  /**
+     * Validates a new block before adding it to the chain
+     * @return True if the block is valid, false otherwise
+     * */
+
+  public isValid(previousBlock: Block): boolean {
+    // Check index
+    if (this.header.index !== previousBlock.header.index + 1) {
+      console.error(`Invalid block index: expected ${previousBlock.header.index + 1}, got ${this.header.index}`);
+      return false;
+    }
+    
+    // Check previous hash
+    if (this.header.previousHash !== previousBlock.hash) {
+      console.error(`Invalid previous hash: expected ${previousBlock.hash}, got ${this.header.previousHash}`);
+      return false;
+    }
+
+    // Check hash
+    const hashResult = this.verifyHash();
+    if (!hashResult.isValid) {
+      console.error(`Invalid block hash: ${hashResult.errors.join(', ')}`);
+      return false;
+    }
+    
+    // Check difficulty
+    if (!this.isValidDifficulty(this.header.difficulty)) {
+      console.error(`Invalid block difficulty: ${this.header.difficulty}`);
+      return false;
+    }
+    
+    // Check transactions
+    if (!this.areTransactionsValid(this.transactions)) {
+      console.error('Invalid transactions in block');
+      return false;
+    }
+    
+    return true;
+  }
+
+  /**
+   * Validates the difficulty of a block
+   * @param difficulty The difficulty to validate
+   * @return True if valid, false otherwise
+   */
+
+  private isValidDifficulty(difficulty: number): boolean {
+    // assume difficulty is always a positive integer
+    return Number.isInteger(difficulty) && difficulty > 0;
+  }
+
+  /**
+   * Validates the transactions in a block
+   * @param transactions The transactions to validate
+   * @return True if all transactions are valid, false otherwise
+   */
+  private areTransactionsValid(transactions: ITransaction[]): boolean {
+    for (const tx of transactions) {
+      if (!tx.id || !tx.from || !tx.to || tx.amount <= 0 || tx.fee < 0) {
+        console.error(`Invalid transaction: ${JSON.stringify(tx)}`);
+        return false;
+      }
+    }
+    
+    return true;
   }
 }

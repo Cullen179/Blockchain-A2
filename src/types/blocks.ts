@@ -1,3 +1,5 @@
+import { BLOCKCHAIN_CONFIG } from "@/constants";
+
 export interface ITransaction {
   id: string;
   from: string;
@@ -30,10 +32,8 @@ export interface IGenesisBlock extends Omit<IBlock, 'header'> {
   header: Omit<IBlockHeader, 'previousHash'> & { previousHash: '0' };
 }
 
-export type ConsensusType = 'PoW';
-
 export interface IConsensusData {
-  type: ConsensusType;
+  type: string;
   nonce: number;
   difficulty: number; 
 }

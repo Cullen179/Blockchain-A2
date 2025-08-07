@@ -1,11 +1,11 @@
-import { Block, ConsensusType, Transaction } from "./blocks";
+import { IBlock, ITransaction } from "./blocks";
 
 export interface IBlockchain {
-  chain: Block[];
+  chain: IBlock[];
   difficulty: number;
-  pendingTransactions: Transaction[];
+  pendingTransactions: ITransaction[];
   miningReward: number;
-  consensusType: ConsensusType;
+  consensusType: string;
 }
 
 export interface IBlockValidationResult {
@@ -27,8 +27,17 @@ export interface IChainValidationResult {
 }
 
 export interface IMiningResult {
-  block: Block;
+  block: IBlock;
   nonce: number;
   hash: string;
   timeTaken: number;
+}
+
+export interface IMempool {
+  transactions: ITransaction[];
+  maxSize: number;
+  currentSize: number;
+  miningReward: number;
+  consensusType: string;
+  difficulty: number;
 }
