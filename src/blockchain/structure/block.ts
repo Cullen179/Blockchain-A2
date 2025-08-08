@@ -11,12 +11,15 @@ export class Block implements IBlock {
   public validatorSignature?: string;
   public size: number;
   public transactionCount: number;
+  public nonce: number;
+  public timestamp: number;
+  public merkleRoot: string;
 
   constructor(
     header: IBlockHeader,
     transactions: ITransaction[],
     validator?: string,
-    validatorSignature?: string
+    validatorSignature?: string,
   ) {
     this.header = header;
     this.transactions = transactions;
@@ -25,6 +28,8 @@ export class Block implements IBlock {
     this.hash = this.calculateHash();
     this.size = this.calculateSize();
     this.transactionCount = transactions.length;
+    this.merkleRoot = this.calculateMerkleRoot();
+    this.timestamp = Date.now();
   }
 
   /**
@@ -191,4 +196,35 @@ export class Block implements IBlock {
     
     return true;
   }
+
+  /**
+   * Calculate the Merkle root of the block's transactions
+   * @return The Merkle root as a hex string
+   * */
+  public calculateMerkleRoot(): string {
+    if (this.transactions.length === 0) {
+      return '0'.repeat(64); // Return a zero hash if no transactions
+    }
+
+    let transactionHashes = this.transactions.map(tx => {
+      return crypto.createHash(HASH_ALGORITHMS.SHA256).update(JSON.stringify(tx)).digest('hex');
+    });
+
+    while (transactionHashes.length > 1) {
+      const newLevel: string[] = [];
+      for (let i = 0; i < transactionHashes.length; i += 2) {
+        if (i + 1 < transactionHashes.length) {
+          const combinedHash = transactionHashes[i] + transactionHashes[i + 1];
+          newLevel.push(crypto.createHash(HASH_ALGORITHMS.SHA256).update(combinedHash).digest('hex'));
+        } else {
+          newLevel.push(transactionHashes[i]); // Odd count, carry last hash
+        }
+      }
+      transactionHashes = newLevel;
+    }
+
+    this.merkleRoot = transactionHashes[0];
+    return this.merkleRoot;
+  }
+
 }

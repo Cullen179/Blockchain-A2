@@ -26,6 +26,9 @@ export interface IBlock {
   transactions: ITransaction[];
   size: number;
   transactionCount: number;
+  nonce: number;
+  timestamp: number;
+  merkleRoot: string;
 }
 
 export interface IGenesisBlock extends Omit<IBlock, 'header'> {
