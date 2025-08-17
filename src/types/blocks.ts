@@ -7,8 +7,9 @@ export interface ITransaction {
   amount: number;
   fee: number;
   timestamp: number;
-  signature: string;
-  data?: any;
+  inputs: ITransactionInput[];
+  outputs: ITransactionOutput[];
+  size: number;
 }
 
 export interface IBlockHeader {
@@ -39,4 +40,31 @@ export interface IConsensusData {
   type: string;
   nonce: number;
   difficulty: number; 
+}
+
+export interface IUTXO {
+  transactionId: string;
+  outputIndex: number;
+  amount: number;
+  address: string;
+  isSpent: boolean;
+  scriptPubKey: string;
+}
+
+export interface IUTXOSet {
+  utxos: Map<string, IUTXO>; // Keyed by transactionId:outputIndex
+  totalAmount: number;
+}
+
+export interface ITransactionInput {
+  previousTransactionId: string;
+  outputIndex: number;
+  scriptSig: string;
+  sequence: number;
+}
+
+export interface ITransactionOutput {
+  amount: number;
+  scriptPubKey: string;
+  address: string;
 }

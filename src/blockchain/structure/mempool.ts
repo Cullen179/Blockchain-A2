@@ -6,7 +6,7 @@ export class Mempool implements IMempool {
   maxSize: number;
   currentSize: number = 0;
   miningReward: number;
-  consensusType: string;
+  consensusType: string = 'POW';
   difficulty: number;
 
   constructor(maxSize: number, miningReward: number, consensusType: string, difficulty: number) {
