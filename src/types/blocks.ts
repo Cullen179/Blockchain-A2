@@ -60,11 +60,19 @@ export interface ITransactionInput {
   previousTransactionId: string;
   outputIndex: number;
   scriptSig: string;
-  sequence: number;
+  // sequence: number;
 }
 
 export interface ITransactionOutput {
   amount: number;
   scriptPubKey: string;
   address: string;
+}
+
+export interface IWallet {
+  address: string;
+  privateKey: string;
+  publicKey: string;
+  balance: number;
+  utxoSet: IUTXOSet;
 }

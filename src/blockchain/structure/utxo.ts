@@ -12,7 +12,7 @@ export class UTXOManager implements IUTXOSet {
     /**
    * Add UTXOs from a new transaction's outputs
    */
-  public addUTXOs(transaction: ITransaction, blockHeight: number): void {
+  public addUTXOs(transaction: ITransaction): void {
     transaction.outputs.forEach((output, index) => {
       const utxoKey = `${transaction.id}:${index}`;
       const utxo: IUTXO = {
@@ -25,7 +25,6 @@ export class UTXOManager implements IUTXOSet {
       };
 
       this.utxos.set(utxoKey, utxo);
-      this.updateAddressBalance(output.address, output.amount, true);
     });
   }
 
@@ -41,7 +40,6 @@ export class UTXOManager implements IUTXOSet {
       
       if (utxo) {
         this.utxos.delete(utxoKey);
-        this.updateAddressBalance(utxo.address, utxo.amount, false);
         spentUTXOs.push(utxo);
       }
     });
@@ -52,7 +50,7 @@ export class UTXOManager implements IUTXOSet {
   /**
    * Process a complete transaction (remove spent UTXOs, add new UTXOs)
    */
-  public processTransaction(transaction: ITransaction, blockHeight: number): boolean {
+  public processTransaction(transaction: ITransaction): boolean {
     // First validate that all inputs exist and can be spent
     if (!this.validateTransactionInputs(transaction)) {
       return false;
@@ -61,8 +59,8 @@ export class UTXOManager implements IUTXOSet {
     // Remove spent UTXOs
     this.removeUTXOs(transaction);
     
-    // Add new UTXOs
-    this.addUTXOs(transaction, blockHeight);
+    // Add new UTXOs to recipients and changes to sender
+    this.addUTXOs(transaction);
     
     return true;
   }
@@ -121,13 +119,6 @@ export class UTXOManager implements IUTXOSet {
       utxos: new Map(this.utxos),
       totalAmount: totalValue,
     };
-  }
-
-  /**
-   * Update address balance tracking
-   */
-  private updateAddressBalance(address: string, amount: number, isAdd: boolean): void {
-    const 
   }
 
   /**

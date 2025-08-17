@@ -22,7 +22,7 @@ describe('UTXOManager', () => {
     timestamp: Date.now(),
     inputs,
     outputs,
-    size: 0
+    size: 0 // Size can be calculated later if needed
   });
 
   // Helper function to create a mock UTXO
@@ -88,7 +88,7 @@ describe('UTXOManager', () => {
 
     it('should remove UTXOs when they are spent', () => {
       const inputs: ITransactionInput[] = [
-        { previousTransactionId: 'tx1', outputIndex: 0, scriptSig: 'sig1', sequence: 0 }
+        { previousTransactionId: 'tx1', outputIndex: 0, scriptSig: 'sig1' }
       ];
       const outputs: ITransactionOutput[] = [
         { address: 'bob', amount: 99, scriptPubKey: 'pubkey-bob' }
@@ -106,7 +106,7 @@ describe('UTXOManager', () => {
 
     it('should handle non-existent UTXOs gracefully', () => {
       const inputs: ITransactionInput[] = [
-        { previousTransactionId: 'nonexistent', outputIndex: 0, scriptSig: 'sig1', sequence: 0 }
+        { previousTransactionId: 'nonexistent', outputIndex: 0, scriptSig: 'sig1' }
       ];
 
       const spendingTx = createMockTransaction('tx2', inputs, []);
@@ -129,7 +129,7 @@ describe('UTXOManager', () => {
 
     it('should process valid transaction successfully', () => {
       const inputs: ITransactionInput[] = [
-        { previousTransactionId: 'tx1', outputIndex: 0, scriptSig: 'sig1', sequence: 0 }
+        { previousTransactionId: 'tx1', outputIndex: 0, scriptSig: 'sig1' }
       ];
       const outputs: ITransactionOutput[] = [
         { address: 'bob', amount: 70, scriptPubKey: 'pubkey-bob' },
@@ -247,14 +247,13 @@ describe('UTXOManager', () => {
     });
 
     it('should select sufficient UTXOs using greedy algorithm', () => {
-      const selectedUTXOs = utxoManager.selectUTXOsForSpending('alice', 75);
-
+      const selectedUTXOs = utxoManager.selectUTXOsForSpending('alice', 125);
+      const totalSelected = selectedUTXOs.reduce((sum, utxo) => sum + utxo.amount, 0);
+      
       expect(selectedUTXOs.length).toBe(2); // Should select 100 + 50 (largest first)
       expect(selectedUTXOs[0].amount).toBe(100); // Largest first
       expect(selectedUTXOs[1].amount).toBe(50);
-      
-      const totalSelected = selectedUTXOs.reduce((sum, utxo) => sum + utxo.amount, 0);
-      expect(totalSelected).toBeGreaterThanOrEqual(75);
+      expect(totalSelected).toBeGreaterThanOrEqual(125);
     });
 
     it('should return empty array when insufficient funds', () => {
