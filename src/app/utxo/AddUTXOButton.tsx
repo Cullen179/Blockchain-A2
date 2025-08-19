@@ -1,249 +1,196 @@
 'use client';
 
-import React, { useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+import { useForm } from 'react-hook-form';
+
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import type { UTXO } from '@/generated/prisma';
+import { fetchAPI } from '@/lib/fetch';
+import { toast } from 'sonner';
 
-interface AddUTXOButtonProps {
-  onUTXOAdded?: (utxo: UTXO) => void;
-}
+const formSchema = z.object({
+  transactionId: z.string().min(1, 'Transaction ID is required'),
+  outputIndex: z.number().min(0, 'Output index must be 0 or greater'),
+  address: z.string().min(1, 'Address is required'),
+  amount: z.number(),
+  scriptPubKey: z.string().optional(),
+});
 
-interface UTXOFormData {
-  transactionId: string;
-  outputIndex: number;
-  address: string;
-  amount: number;
-  scriptPubKey: string;
-}
-
-export function AddUTXOButton({ onUTXOAdded }: AddUTXOButtonProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  
-  const [formData, setFormData] = useState<UTXOFormData>({
-    transactionId: '',
-    outputIndex: 0,
-    address: '',
-    amount: 0,
-    scriptPubKey: '',
-  });
-
-  const resetForm = () => {
-    setFormData({
+export default function AddUTXOButton() {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
       transactionId: '',
       outputIndex: 0,
       address: '',
-      amount: 0,
+      amount: 1,
       scriptPubKey: '',
-    });
-    setError(null);
-    setSuccess(false);
-  };
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    // Handle UTXO creation logic here
     try {
-      const response = await fetch('/api/utxos', {
+      const res = fetchAPI('/utxos', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        data: values,
       });
 
-      const data = await response.json();
+      toast.success('UTXO created successfully');
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to create UTXO');
-      }
-
-      setSuccess(true);
-      onUTXOAdded?.(data.utxo);
-      
-      // Reset form after successful creation
-      setTimeout(() => {
-        resetForm();
-        setIsOpen(false);
-      }, 1500);
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error('Error creating UTXO:', error);
+      toast.error('Failed to create UTXO');
     }
-  };
-
-  const handleInputChange = (field: keyof UTXOFormData) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const value = field === 'outputIndex' || field === 'amount' 
-      ? parseInt(e.target.value) || 0 
-      : e.target.value;
     
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const generateSampleData = () => {
-    const sampleTxId = 'tx_' + Math.random().toString(36).substring(2, 15);
-    const sampleAddress = '1' + Math.random().toString(36).substring(2, 15).toUpperCase();
-    
-    setFormData({
-      transactionId: sampleTxId,
-      outputIndex: Math.floor(Math.random() * 5),
-      address: sampleAddress,
-      amount: Math.floor(Math.random() * 100000000) + 1000000, // 0.01 to 1 BTC in satoshi
-      scriptPubKey: `OP_DUP OP_HASH160 ${sampleAddress.substring(1)} OP_EQUALVERIFY OP_CHECKSIG`,
-    });
-  };
-
-  if (!isOpen) {
-    return (
-      <Button 
-        onClick={() => setIsOpen(true)}
-        className="mb-4"
-        size="lg"
-      >
-        + Add New UTXO
-      </Button>
-    );
+    // Reset form after submission
+    form.reset();
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Create New UTXO</CardTitle>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setIsOpen(false)}
-            >
-              ✕
-            </Button>
-          </div>
-        </CardHeader>
-        
-        <CardContent>
-          {success && (
-            <Alert className="mb-4 border-green-200 bg-green-50">
-              <AlertDescription className="text-green-800">
-                UTXO created successfully! 🎉
-              </AlertDescription>
-            </Alert>
-          )}
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="mb-4" size="lg">
+          + Add New UTXO
+        </Button>
+      </DialogTrigger>
 
-          {error && (
-            <Alert className="mb-4" variant="destructive">
-              <AlertDescription>
-                {error}
-              </AlertDescription>
-            </Alert>
-          )}
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Create New UTXO</DialogTitle>
+          <DialogDescription>
+            Add a new Unspent Transaction Output to the blockchain.
+          </DialogDescription>
+        </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Transaction ID *
-              </label>
-              <Input
-                value={formData.transactionId}
-                onChange={handleInputChange('transactionId')}
-                placeholder="Enter transaction hash"
-                required
-                className="font-mono text-xs"
-              />
-            </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="transactionId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Transaction ID *</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter transaction hash"
+                      className="font-mono text-sm"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Output Index *
-              </label>
-              <Input
-                type="number"
-                min="0"
-                value={formData.outputIndex}
-                onChange={handleInputChange('outputIndex')}
-                placeholder="0"
-                required
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="outputIndex"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Output Index *</FormLabel>
+                  <FormControl>
+                    <Input type="number" min="0" placeholder="0" {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      value={field.value?.toString() || ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Address *
-              </label>
-              <Input
-                value={formData.address}
-                onChange={handleInputChange('address')}
-                placeholder="Bitcoin address"
-                required
-                className="font-mono text-xs"
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address *</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Bitcoin address"
+                      className="font-mono text-sm"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Amount (satoshi) *
-              </label>
-              <Input
-                type="number"
-                min="1"
-                value={formData.amount}
-                onChange={handleInputChange('amount')}
-                placeholder="100000000"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                {formData.amount > 0 && `≈ ${(formData.amount / 100000000).toFixed(8)} BTC`}
-              </p>
-            </div>
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount (satoshi) *</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="100000000"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      value={field.value?.toString() || ''}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {field.value > 0 &&
+                      `≈ ${(field.value / 100000000).toFixed(8)} BTC`}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Script Pub Key
-              </label>
-              <Input
-                value={formData.scriptPubKey}
-                onChange={handleInputChange('scriptPubKey')}
-                placeholder="OP_DUP OP_HASH160 ... OP_EQUALVERIFY OP_CHECKSIG"
-                className="font-mono text-xs"
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="scriptPubKey"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Script Pub Key</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="OP_DUP OP_HASH160 ... OP_EQUALVERIFY OP_CHECKSIG"
+                      className="font-mono text-xs"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Leave empty to auto-generate
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="flex gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={generateSampleData}
-                className="flex-1"
-              >
-                🎲 Generate Sample
-              </Button>
-              
-              <Button
-                type="submit"
-                disabled={isLoading || success}
-                className="flex-1"
-              >
-                {isLoading ? 'Creating...' : success ? 'Created!' : 'Create UTXO'}
+              <Button type="submit" variant="outline">
+                Create UTXO
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
-    </div>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }

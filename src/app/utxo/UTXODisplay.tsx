@@ -1,7 +1,11 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import type { UTXO } from '@/generated/prisma';
+import React, { useMemo, useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -11,11 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
+import type { UTXO } from '@/generated/prisma';
 
 interface UTXODisplayProps {
   utxos: UTXO[];
@@ -23,19 +24,22 @@ interface UTXODisplayProps {
 
 export function UTXODisplay({ utxos }: UTXODisplayProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'spent' | 'unspent'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'spent' | 'unspent'>(
+    'all'
+  );
 
   // Filter and search UTXOs
   const filteredUTXOs = useMemo(() => {
-    return utxos.filter(utxo => {
+    return utxos.filter((utxo) => {
       // Filter by spent status
-      const statusMatch = 
+      const statusMatch =
         filterType === 'all' ||
         (filterType === 'spent' && utxo.isSpent) ||
         (filterType === 'unspent' && !utxo.isSpent);
 
       // Filter by search term
-      const searchMatch = !searchTerm || 
+      const searchMatch =
+        !searchTerm ||
         utxo.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
         utxo.transactionId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         utxo.id.toLowerCase().includes(searchTerm.toLowerCase());
@@ -46,9 +50,9 @@ export function UTXODisplay({ utxos }: UTXODisplayProps) {
 
   // Calculate statistics
   const stats = useMemo(() => {
-    const unspentUTXOs = utxos.filter(utxo => !utxo.isSpent);
-    const spentUTXOs = utxos.filter(utxo => utxo.isSpent);
-    
+    const unspentUTXOs = utxos.filter((utxo) => !utxo.isSpent);
+    const spentUTXOs = utxos.filter((utxo) => utxo.isSpent);
+
     return {
       total: utxos.length,
       unspent: unspentUTXOs.length,
@@ -74,7 +78,7 @@ export function UTXODisplay({ utxos }: UTXODisplayProps) {
   return (
     <div className="w-full space-y-6">
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total UTXOs</CardTitle>
@@ -83,16 +87,18 @@ export function UTXODisplay({ utxos }: UTXODisplayProps) {
             <div className="text-2xl font-bold">{stats.total}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unspent UTXOs</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.unspent}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {stats.unspent}
+            </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Spent UTXOs</CardTitle>
@@ -101,13 +107,17 @@ export function UTXODisplay({ utxos }: UTXODisplayProps) {
             <div className="text-2xl font-bold text-red-600">{stats.spent}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available Value</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Available Value
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatAmount(stats.totalValue)} BTC</div>
+            <div className="text-2xl font-bold">
+              {formatAmount(stats.totalValue)} BTC
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -118,12 +128,11 @@ export function UTXODisplay({ utxos }: UTXODisplayProps) {
           <CardTitle>UTXO Management</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+          <div className="mb-4 flex flex-col gap-4 sm:flex-row">
             <Input
               placeholder="Search by address, transaction ID, or UTXO ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              
               className="flex-1"
             />
             <div className="flex gap-2">
@@ -183,9 +192,7 @@ export function UTXODisplay({ utxos }: UTXODisplayProps) {
                       {formatAmount(utxo.amount)} BTC
                     </TableCell>
                     <TableCell>
-                      <Badge 
-                        variant={utxo.isSpent ? "destructive" : "default"}
-                      >
+                      <Badge variant={utxo.isSpent ? 'destructive' : 'default'}>
                         {utxo.isSpent ? 'Spent' : 'Unspent'}
                       </Badge>
                     </TableCell>
@@ -202,7 +209,7 @@ export function UTXODisplay({ utxos }: UTXODisplayProps) {
           </div>
 
           {filteredUTXOs.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="py-8 text-center text-gray-500">
               No UTXOs found matching your criteria.
             </div>
           )}
