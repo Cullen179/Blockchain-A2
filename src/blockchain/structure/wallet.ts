@@ -2,20 +2,33 @@ import { IUTXO, IUTXOSet, IWallet } from "@/types/blocks";
 import { UTXOManager } from "./utxo";
 import { Transaction } from "./transaction";
 import crypto from 'crypto';
-export class Wallet implements IWallet {
-  public address: string;
-  public privateKey: string;
-  public publicKey: string;
-  public balance: number;
-  public utxos: IUTXO[];
+import { WalletRepository } from "@/repositories/WalletRepository";
+export class Wallet {
+  // public address: string;
+  // public privateKey: string;
+  // public publicKey: string;
+  // public balance: number;
+  // public utxos: IUTXO[];
 
-  constructor(address: string, privateKey: string, publicKey: string, initialBalance: number = 0) {
-    this.address = address;
-    this.privateKey = privateKey;
-    this.publicKey = publicKey;
-    this.balance = initialBalance;
-    this.utxos = [];
+  // constructor(address: string, privateKey: string, publicKey: string, initialBalance: number = 0) {
+  //   this.address = address;
+  //   this.privateKey = privateKey;
+  //   this.publicKey = publicKey;
+  //   this.balance = initialBalance;
+  //   this.utxos = [];
+  // }
+
+  static async getAllWallets(): Promise<IWallet[]> {
+    return await WalletRepository.findAll();
   }
+
+  static async generateKeyPair(): Promise<{
+    address: string;
+    privateKey: string;
+    publicKey: string;
+  }> {
+    
+  }> {
   
   /**
    * Create a new transaction from the wallet

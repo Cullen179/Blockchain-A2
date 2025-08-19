@@ -1,37 +1,35 @@
-import { IUTXO } from '@/types/blocks';
-import { ISearchableRepository } from './base/IRepository';
 import { prisma } from '@/lib/prisma';
-import { UTXO, Prisma } from '../generated/prisma';
+import { IUTXO } from '@/types/blocks';
 
-export interface IUTXORepository extends ISearchableRepository<IUTXO, string> {
-  findByAddress(address: string): Promise<IUTXO[]>;
-  findUnspentByAddress(address: string): Promise<IUTXO[]>;
-  markAsSpent(transactionId: string, outputIndex: number): Promise<boolean>;
-  getTotalValueByAddress(address: string): Promise<number>;
-  getAllUnspent(): Promise<IUTXO[]>;
-  getByTransactionAndOutput(transactionId: string, outputIndex: number): Promise<IUTXO | null>;
-}
+
+
+import { Prisma, UTXO } from '../generated/prisma';
+import { ISearchableRepository } from './base/IRepository';
+
+
+
+
 
 export class UTXORepository {
-
   static async findById(id: string): Promise<IUTXO | null> {
     const utxo = await prisma.uTXO.findUnique({
-      where: { id }
+      where: { id },
     });
     return utxo;
   }
 
   static async findAll(): Promise<IUTXO[]> {
     const utxos = await prisma.uTXO.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
     return utxos;
   }
 
-  static async create(utxo: IUTXO): Promise<IUTXO> {
+  static async create(utxo: IUTXO, tx?: any): Promise<IUTXO> {
     const id = `${utxo.transactionId}:${utxo.outputIndex}`;
-    
-    const createdUTXO = await prisma.uTXO.create({
+    const client = tx || prisma;
+
+    const createdUTXO = await client.uTXO.create({
       data: {
         id,
         transactionId: utxo.transactionId!,
@@ -39,26 +37,31 @@ export class UTXORepository {
         address: utxo.address!,
         amount: utxo.amount!,
         scriptPubKey: utxo.scriptPubKey!,
-        isSpent: utxo.isSpent ?? false
-      }
+        isSpent: utxo.isSpent ?? false,
+      },
     });
 
     return createdUTXO;
   }
 
-  static async update(id: string, utxoData: Partial<UTXO>): Promise<UTXO | null> {
+  static async update(
+    id: string,
+    utxoData: Partial<UTXO>
+  ): Promise<UTXO | null> {
     try {
       const updatedUTXO = await prisma.uTXO.update({
         where: { id },
         data: {
           ...(utxoData.address && { address: utxoData.address }),
           ...(utxoData.amount !== undefined && { amount: utxoData.amount }),
-          ...(utxoData.scriptPubKey !== undefined && { scriptPubKey: utxoData.scriptPubKey }),
-          ...(utxoData.isSpent !== undefined && { 
+          ...(utxoData.scriptPubKey !== undefined && {
+            scriptPubKey: utxoData.scriptPubKey,
+          }),
+          ...(utxoData.isSpent !== undefined && {
             isSpent: utxoData.isSpent,
-            spentAt: utxoData.isSpent ? new Date() : null 
-          })
-        }
+            spentAt: utxoData.isSpent ? new Date() : null,
+          }),
+        },
       });
 
       return updatedUTXO;
@@ -70,7 +73,7 @@ export class UTXORepository {
   static async delete(id: string): Promise<boolean> {
     try {
       await prisma.uTXO.delete({
-        where: { id }
+        where: { id },
       });
       return true;
     } catch (error) {
@@ -81,7 +84,7 @@ export class UTXORepository {
   static async exists(id: string): Promise<boolean> {
     const utxo = await prisma.uTXO.findUnique({
       where: { id },
-      select: { id: true }
+      select: { id: true },
     });
     return !!utxo;
   }
@@ -103,7 +106,7 @@ export class UTXORepository {
 
     const utxos = await prisma.uTXO.findMany({
       where,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     return utxos;
@@ -131,17 +134,20 @@ export class UTXORepository {
     return UTXORepository.findBy({ address, isSpent: false });
   }
 
-  static async markAsSpent(transactionId: string, outputIndex: number): Promise<boolean> {
+  static async markAsSpent(
+    transactionId: string,
+    outputIndex: number
+  ): Promise<boolean> {
     try {
       await prisma.uTXO.updateMany({
         where: {
           transactionId,
-          outputIndex
+          outputIndex,
         },
         data: {
           isSpent: true,
-          spentAt: new Date()
-        }
+          spentAt: new Date(),
+        },
       });
       return true;
     } catch (error) {
@@ -153,11 +159,11 @@ export class UTXORepository {
     const result = await prisma.uTXO.aggregate({
       where: {
         address,
-        isSpent: false
+        isSpent: false,
       },
       _sum: {
-        amount: true
-      }
+        amount: true,
+      },
     });
     return result._sum.amount || 0;
   }
@@ -166,7 +172,10 @@ export class UTXORepository {
     return UTXORepository.findBy({ isSpent: false });
   }
 
-  static async getByTransactionAndOutput(transactionId: string, outputIndex: number): Promise<IUTXO | null> {
+  static async getByTransactionAndOutput(
+    transactionId: string,
+    outputIndex: number
+  ): Promise<IUTXO | null> {
     const id = `${transactionId}:${outputIndex}`;
     return UTXORepository.findById(id);
   }

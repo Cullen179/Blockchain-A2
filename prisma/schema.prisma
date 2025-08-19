@@ -88,7 +88,20 @@ model UTXO {
 
   // Relations
   transaction Transaction @relation(fields: [transactionId], references: [id])
+  wallet      Wallet?     @relation(fields: [address], references: [address])
   
   @@unique([transactionId, outputIndex])
   @@map("utxos")
+}
+
+model Wallet {
+  address    String   @id
+  privateKey String   @map("private_key")
+  publicKey  String   @map("public_key")
+  balance    Int      @default(0)
+  
+  // Relations
+  utxos UTXO[]
+
+  @@map("wallets")
 }
