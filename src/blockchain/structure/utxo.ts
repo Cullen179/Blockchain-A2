@@ -1,20 +1,16 @@
-import { ITransaction, IUTXO, IUTXOSet,  } from "@/types/blocks";
+import { ITransaction, IUTXO, IUTXOSet } from "@/types/blocks";
+import { UTXORepository } from "@/repositories/UTXORepository";
+import { NextRequest, NextResponse } from "next/server";
 
-export class UTXOManager implements IUTXOSet {
-  utxos: Map<string, IUTXO>;
-  totalAmount: number;
+export class UTXOManager {
 
-  constructor() {
-    this.utxos = new Map<string, IUTXO>();
-    this.totalAmount = 0;
-  }
-
-    /**
-   * Add UTXOs from a new transaction's outputs
+  /**
+   * Add UTXOs from a new transaction's outputs (to both memory and database)
    */
-  public addUTXOs(transaction: ITransaction): void {
-    transaction.outputs.forEach((output, index) => {
-      const utxoKey = `${transaction.id}:${index}`;
+  static async addUTXOs(transaction: ITransaction): Promise<void> {
+    // Create UTXOs using repository
+    for (let index = 0; index < transaction.outputs.length; index++) {
+      const output = transaction.outputs[index];
       const utxo: IUTXO = {
         transactionId: transaction.id,
         outputIndex: index,
@@ -24,43 +20,102 @@ export class UTXOManager implements IUTXOSet {
         isSpent: false
       };
 
-      this.utxos.set(utxoKey, utxo);
-    });
+      // Save to database via repository
+      await UTXORepository.create(utxo);
+    }
+  }
+
+  static async createUTXO(request: NextRequest) {
+
+    try {
+        const body = await request.json();
+        
+        // Validate required fields
+        const { transactionId, outputIndex, address, amount, scriptPubKey } = body;
+        
+        if (!transactionId || outputIndex === undefined || !address || !amount) {
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'Missing required fields',
+              message: 'transactionId, outputIndex, address, and amount are required'
+            },
+            { status: 400 }
+          );
+        }
+    
+        // Create the UTXO
+        const utxoData = {
+          transactionId,
+          outputIndex: parseInt(outputIndex),
+          address,
+          amount: parseInt(amount),
+          scriptPubKey: scriptPubKey || `OP_DUP OP_HASH160 ${address} OP_EQUALVERIFY OP_CHECKSIG`,
+          isSpent: false
+        };
+    
+        const createdUTXO = await UTXORepository.create(utxoData);
+    
+        return NextResponse.json({
+          success: true,
+          utxo: createdUTXO,
+          message: 'UTXO created successfully'
+        });
+    
+      } catch (error) {
+        console.error('Error creating UTXO:', error);
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Failed to create UTXO',
+            message: error instanceof Error ? error.message : 'Unknown error'
+          },
+          { status: 500 }
+        );
+      }
   }
 
   /**
-   * Remove UTXOs that are spent by transaction inputs
+   * Remove UTXOs that are spent by transaction inputs (from both memory and database)
    */
-  public removeUTXOs(transaction: ITransaction): IUTXO[] {
+  static async removeUTXOs(transaction: ITransaction): Promise<IUTXO[]> {
     const spentUTXOs: IUTXO[] = [];
     
-    transaction.inputs.forEach(input => {
-      const utxoKey = `${input.previousTransactionId}:${input.outputIndex}`;
-      const utxo = this.utxos.get(utxoKey);
+    for (const input of transaction.inputs) {
+      // Fetch UTXO from database
+      const utxo = await UTXORepository.getByTransactionAndOutput(
+        input.previousTransactionId,
+        input.outputIndex
+      );
       
-      if (utxo) {
-        this.utxos.delete(utxoKey);
+      if (utxo && !utxo.isSpent) {
         spentUTXOs.push(utxo);
+        
+        // Mark as spent in database using repository
+        await UTXORepository.markAsSpent(
+          input.previousTransactionId, 
+          input.outputIndex
+        );
       }
-    });
-    
+    }
+
     return spentUTXOs;
   }
 
   /**
    * Process a complete transaction (remove spent UTXOs, add new UTXOs)
    */
-  public processTransaction(transaction: ITransaction): boolean {
+  static async processTransaction(transaction: ITransaction): Promise<boolean> {
     // First validate that all inputs exist and can be spent
-    if (!this.validateTransactionInputs(transaction)) {
+    if (!await this.validateTransactionInputs(transaction)) {
       return false;
     }
 
-    // Remove spent UTXOs
-    this.removeUTXOs(transaction);
+    // Remove spent UTXOs (from both memory and database)
+    await this.removeUTXOs(transaction);
     
-    // Add new UTXOs to recipients and changes to sender
-    this.addUTXOs(transaction);
+    // Add new UTXOs to recipients and changes to sender (to both memory and database)
+    await this.addUTXOs(transaction);
     
     return true;
   }
@@ -68,29 +123,36 @@ export class UTXOManager implements IUTXOSet {
   /**
    * Validate that all transaction inputs exist and are unspent
    */
-  public validateTransactionInputs(transaction: ITransaction): boolean {
+  static async validateTransactionInputs(transaction: ITransaction): Promise<boolean> {
     for (const input of transaction.inputs) {
-      const utxoKey = `${input.previousTransactionId}:${input.outputIndex}`;
-      if (!this.utxos.has(utxoKey)) {
-        console.error(`UTXO not found: ${utxoKey}`);
+      // Check database using repository
+      const dbUTXO = await UTXORepository.getByTransactionAndOutput(
+        input.previousTransactionId,
+        input.outputIndex
+      );
+      
+      if (!dbUTXO || dbUTXO.isSpent) {
+        const utxoKey = `${input.previousTransactionId}:${input.outputIndex}`;
+        console.error(`UTXO not found or already spent: ${utxoKey}`);
         return false;
       }
     }
+    
     return true;
   }
 
   /**
-   * Get all UTXOs for a specific address
+   * Get all UTXOs for a specific address (from database for accuracy)
    */
-  public getUTXOsForAddress(address: string): IUTXO[] {
-    return Array.from(this.utxos.values()).filter(utxo => utxo.address === address);
+  static async getUTXOsForAddress(address: string): Promise<IUTXO[]> {
+    return await UTXORepository.findUnspentByAddress(address);
   }
 
   /**
    * Select UTXOs for spending (coin selection algorithm)
    */
-  public selectUTXOsForSpending(address: string, amount: number): IUTXO[] {
-    const availableUTXOs = this.getUTXOsForAddress(address);
+  static async selectUTXOsForSpending(address: string, amount: number): Promise<IUTXO[]> {
+    const availableUTXOs = await this.getUTXOsForAddress(address);
     const selectedUTXOs: IUTXO[] = [];
     let totalSelected = 0;
 
@@ -110,13 +172,22 @@ export class UTXOManager implements IUTXOSet {
   }
 
   /**
-   * Get current UTXO set statistics
+   * Get current UTXO set statistics (from database for accuracy)
    */
-  public getUTXOSetStats(): IUTXOSet {
-    const totalValue = Array.from(this.utxos.values()).reduce((sum, utxo) => sum + utxo.amount, 0);
-    
+  static async getUTXOSetStats(): Promise<IUTXOSet> {
+    const dbUTXOs = await UTXORepository.getAllUnspent();
+
+    const utxoMap = new Map<string, IUTXO>();
+    let totalValue = 0;
+
+    dbUTXOs.forEach(utxo => {
+      const utxoKey = `${utxo.transactionId}:${utxo.outputIndex}`;
+      utxoMap.set(utxoKey, utxo);
+      totalValue += utxo.amount;
+    });
+
     return {
-      utxos: new Map(this.utxos),
+      utxos: utxoMap,
       totalAmount: totalValue,
     };
   }
@@ -124,22 +195,32 @@ export class UTXOManager implements IUTXOSet {
   /**
    * Calculate transaction fee from inputs and outputs
    */
-  public calculateTransactionFee(transaction: ITransaction): number {
+  static async calculateTransactionFee(transaction: ITransaction): Promise<number> {
     let inputTotal = 0;
     let outputTotal = 0;
 
-    // Sum input values
-    transaction.inputs.forEach(input => {
-      const utxoKey = `${input.previousTransactionId}:${input.outputIndex}`;
-      const utxo = this.utxos.get(utxoKey);
+    // Sum input values using repository
+    for (const input of transaction.inputs) {
+      const utxo = await UTXORepository.getByTransactionAndOutput(
+        input.previousTransactionId,
+        input.outputIndex
+      );
+      
       if (utxo) {
         inputTotal += utxo.amount;
       }
-    });
+    }
 
     // Sum output values
     outputTotal = transaction.outputs.reduce((sum, output) => sum + output.amount, 0);
 
     return inputTotal - outputTotal;
+  }
+
+  /**
+   * Get the total balance for an address (from database)
+   */
+  static async getBalanceForAddress(address: string): Promise<number> {
+    return await UTXORepository.getTotalValueByAddress(address);
   }
 }

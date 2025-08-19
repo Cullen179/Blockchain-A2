@@ -74,5 +74,5 @@ export interface IWallet {
   privateKey: string;
   publicKey: string;
   balance: number;
-  utxoSet: IUTXOSet;
+  utxos: IUTXO[];
 }

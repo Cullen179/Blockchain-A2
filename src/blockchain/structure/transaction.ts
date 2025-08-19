@@ -1,42 +1,61 @@
-import { IMempool } from "@/types";
-import { ITransaction } from "@/types/blocks";
+import { ITransaction, ITransactionInput, ITransactionOutput } from "@/types/blocks";
+import crypto from 'crypto';
 
-export class Mempool implements IMempool {
-  public transactions: ITransaction[] = [];
-  public maxSize: number;
-  public currentSize: number = 0;
-  public miningReward: number;
-  public consensusType: string;
-  public difficulty: number;
+export class Transaction implements ITransaction {
+   public id: string;
+  public from: string;
+  public to: string;
+  public amount: number;
+  public fee: number;
+  public timestamp: number;
+  public inputs: ITransactionInput[];
+  public outputs: ITransactionOutput[];
+  public size: number;
 
-  constructor(maxSize: number, miningReward: number, consensusType: string, difficulty: number) {
-    this.maxSize = maxSize;
-    this.miningReward = miningReward;
-    this.consensusType = consensusType;
-    this.difficulty = difficulty;
+  constructor(
+    from: string,
+    to: string,
+    amount: number,
+    fee: number = 1,
+    inputs: ITransactionInput[] = [],
+    outputs: ITransactionOutput[] = []
+  ) {
+    this.from = from;
+    this.to = to;
+    this.amount = amount;
+    this.fee = fee;
+    this.timestamp = Date.now();
+    this.inputs = inputs;
+    this.outputs = outputs;
+    this.id = this.generateTransactionId();
+    this.size = this.calculateSize();
   }
 
-  public addTransaction(transaction: ITransaction): boolean {
-    if (this.currentSize >= this.maxSize) {
-      console.error('Mempool is full');
-      return false;
-    }
+  /**
+   * Generate a unique transaction ID based on transaction contents
+   */
+  private generateTransactionId(): string {
+    const transactionData = JSON.stringify({
+      from: this.from,
+      to: this.to,
+      amount: this.amount,
+      fee: this.fee,
+      timestamp: this.timestamp,
+      inputs: this.inputs.map(input => ({
+        previousTransactionId: input.previousTransactionId,
+        outputIndex: input.outputIndex
+      })),
+      outputs: this.outputs
+    });
 
-    this.transactions.push(transaction);
-    this.currentSize += this.getTransactionSize(transaction);
-    return true;
+    return crypto.createHash('sha256').update(transactionData).digest('hex');
   }
 
-  public getTransactions(): ITransaction[] {
-    return this.transactions;
-  }
-
-  public clear(): void {
-    this.transactions = [];
-    this.currentSize = 0;
-  }
-
-  private getTransactionSize(transaction: ITransaction): number {
-    return Buffer.byteLength(JSON.stringify(transaction), 'utf8');
+  /**
+   * Calculate the size of the transaction in bytes
+   */
+  public calculateSize(): number {
+    const transactionString = JSON.stringify(this);
+    return Buffer.byteLength(transactionString, 'utf8');
   }
 }

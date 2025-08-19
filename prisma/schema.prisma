@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Block {
+  hash             String   @id
+  index            Int      @unique
+  previousHash     String   @map("previous_hash")
+  merkleRoot       String   @map("merkle_root")
+  timestamp        Int
+  nonce            Int
+  difficulty       Int
+  size             Int      @default(0)
+  transactionCount Int      @default(0) @map("transaction_count")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  // Relations
+  transactions Transaction[]
+
+  @@map("blocks")
+}
+
+model Transaction {
+  id        String   @id
+  from      String   // Changed from fromAddress to match ITransaction.from
+  to        String   // Changed from toAddress to match ITransaction.to
+  amount    Int      // Changed from Float to Int to match interface
+  fee       Int      // Changed from Float to Int to match interface
+  timestamp Int
+  size      Int      @default(0)
+  blockHash String?  @map("block_hash")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  block   Block?              @relation(fields: [blockHash], references: [hash])
+  inputs  TransactionInput[]
+  outputs TransactionOutput[]
+  utxos   UTXO[]
+
+  @@map("transactions")
+}
+
+model TransactionInput {
+  id                    Int      @id @default(autoincrement())
+  transactionId         String   @map("transaction_id")
+  previousTransactionId String   @map("previous_transaction_id")
+  outputIndex           Int      @map("output_index")
+  scriptSig             String   @map("script_sig") // Changed from signature to scriptSig
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  // Relations
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+
+  @@map("transaction_inputs")
+}
+
+model TransactionOutput {
+  id           Int      @id @default(autoincrement())
+  transactionId String  @map("transaction_id")
+  outputIndex   Int     @map("output_index")
+  address       String
+  amount        Int     // Changed from Float to Int
+  scriptPubKey  String  @map("script_pub_key")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+
+  @@map("transaction_outputs")
+}
+
+model UTXO {
+  id            String    @id
+  transactionId String    @map("transaction_id")
+  outputIndex   Int       @map("output_index")
+  address       String
+  amount        Int       // Changed from Float to Int
+  scriptPubKey  String    @map("script_pub_key")
+  isSpent       Boolean   @default(false) @map("is_spent")
+  spentAt       DateTime? @map("spent_at") // Added optional spentAt field
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+  
+  @@unique([transactionId, outputIndex])
+  @@map("utxos")
+}

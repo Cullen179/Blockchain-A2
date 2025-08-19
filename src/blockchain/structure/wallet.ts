@@ -1,23 +1,30 @@
-import { ITransaction, IUTXOSet, IWallet } from "@/types/blocks";
-import { UTXOManager, UTXOManager } from "./utxo";
-
+import { IUTXO, IUTXOSet, IWallet } from "@/types/blocks";
+import { UTXOManager } from "./utxo";
+import { Transaction } from "./transaction";
+import crypto from 'crypto';
 export class Wallet implements IWallet {
   public address: string;
   public privateKey: string;
   public publicKey: string;
   public balance: number;
-  public utxoSet: IUTXOSet;
+  public utxos: IUTXO[];
 
   constructor(address: string, privateKey: string, publicKey: string, initialBalance: number = 0) {
     this.address = address;
     this.privateKey = privateKey;
     this.publicKey = publicKey;
     this.balance = initialBalance;
-    this.utxoSet = { utxos: new Map(), totalAmount: initialBalance };
+    this.utxos = [];
   }
-
-
-  public createTransaction(amount: number, recipientAddress: string, fee: number): ITransaction {
+  
+  /**
+   * Create a new transaction from the wallet
+   * @param amount - Amount to send
+   * @param recipientAddress - Address of the recipient
+   * @param fee - Transaction fee
+   * @returns Transaction object
+   */
+  public createTransaction(amount: number, recipientAddress: string, fee: number): Transaction {
     const utxoManager = new UTXOManager();
     if (amount + fee > this.balance) {
       throw new Error("Insufficient balance for transaction");
@@ -55,20 +62,41 @@ export class Wallet implements IWallet {
     ];
 
 
-    const transaction: ITransaction = {
-      id: this.generateTransactionId(),
-      from: this.address,
-      to: recipientAddress,
-      amount: amount,
-      fee: fee,
-      inputs: inputs,
-      outputs: outputs,
-      size: 0, // Size will be calculated later
-      timestamp: Date.now(),
-    };
+    const transaction: Transaction = new Transaction(
+      this.address,
+      recipientAddress,
+      amount,
+      fee,
+      inputs,
+      outputs
+    );
 
+    // Sign the transaction
+    this.signTransaction(transaction);
+
+    return transaction;
   }
 
-  public signTransaction(transaction: ITransaction): void {
+  public signTransaction(transaction: Transaction): void {
+    const signature = crypto.createSign('SHA256');
+    const scriptSig = signature.sign(this.privateKey, 'hex');
+
+    signature.update(JSON.stringify(transaction));
+    transaction.inputs.forEach(input => {
+      input.scriptSig = scriptSig;
+    });
+
+    // Update transaction size after signing
+    transaction.size = transaction.calculateSize();
+  }
+
+  public getBalance(): number {
+    return this.getUTXOs().reduce((sum, utxo) => sum + utxo.amount, 0);
+  }
+
+  public getUTXOs(): IUTXO[] {
+    const utxoManager = new UTXOManager();
+    return utxoManager.getUTXOsForAddress(this.address);
   }
 }
+  
