@@ -47,10 +47,10 @@ export default function AddUTXOButton() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     // Handle UTXO creation logic here
     try {
-      const res = fetchAPI('/utxos', {
+      const res = await fetchAPI('/utxos', {
         method: 'POST',
         data: values,
       });
@@ -59,7 +59,7 @@ export default function AddUTXOButton() {
 
     } catch (error) {
       console.error('Error creating UTXO:', error);
-      toast.error('Failed to create UTXO');
+      toast.error(error instanceof Error ? error.message : 'Failed to create UTXO');
     }
     
     // Reset form after submission

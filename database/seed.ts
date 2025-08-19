@@ -13,8 +13,42 @@ async function runPrismaSeed() {
     await prisma.transactionInput.deleteMany();
     await prisma.transaction.deleteMany();
     await prisma.block.deleteMany();
+    await prisma.wallet.deleteMany();
 
     console.log('📝 Inserting sample blockchain data...');
+
+    // Create Wallets first
+    console.log('👛 Creating wallets...');
+    await prisma.wallet.createMany({
+      data: [
+        {
+          address: 'alice-wallet-123',
+          privateKey: 'alice-private-key-secret-123456789abcdef',
+          publicKey: 'alice-public-key-04a1b2c3d4e5f6789abc',
+          balance: 0 // Will be updated after transactions
+        },
+        {
+          address: 'bob-wallet-456',
+          privateKey: 'bob-private-key-secret-987654321fedcba',
+          publicKey: 'bob-public-key-048f7e6d5c4b3a2901ef',
+          balance: 0
+        },
+        {
+          address: 'charlie-wallet-789',
+          privateKey: 'charlie-private-key-secret-abcdef123456789',
+          publicKey: 'charlie-public-key-04fedcba987654321012',
+          balance: 0
+        },
+        {
+          address: 'coinbase',
+          privateKey: 'coinbase-private-key-system-000000000000',
+          publicKey: 'coinbase-public-key-system-000000000000',
+          balance: 0
+        }
+      ]
+    });
+
+    console.log('✅ Wallets created successfully');
 
     // Create Genesis Block first
     const genesisBlockHash = 'genesis-block-000';
@@ -263,24 +297,9 @@ async function runPrismaSeed() {
 
     console.log('✅ Third block, transaction and UTXOs created');
 
-    // Display summary using Prisma aggregations
-    const blockCount = await prisma.block.count();
-    const transactionCount = await prisma.transaction.count();
-    const utxoCount = await prisma.uTXO.count({ where: { isSpent: false } });
-    const totalValueResult = await prisma.uTXO.aggregate({
-      where: { isSpent: false },
-      _sum: { amount: true }
-    });
-
-    console.log('\n📊 Seed Summary:');
-    console.log(`   🧱 Total Blocks: ${blockCount}`);
-    console.log(`   📝 Total Transactions: ${transactionCount}`);
-    console.log(`   💰 Unspent UTXOs: ${utxoCount}`);
-    console.log(`   💵 Total Value: ${totalValueResult._sum.amount || 0} coins`);
-    console.log(`   📂 Database file: database/blockchain.db`);
-
-    // Test queries using Prisma
-    console.log('\n🔍 Sample Queries:');
+    // Update wallet balances based on unspent UTXOs
+    console.log('💰 Updating wallet balances...');
+    
     const aliceUTXOs = await prisma.uTXO.findMany({
       where: { address: 'alice-wallet-123', isSpent: false }
     });
@@ -290,10 +309,52 @@ async function runPrismaSeed() {
     const charlieUTXOs = await prisma.uTXO.findMany({
       where: { address: 'charlie-wallet-789', isSpent: false }
     });
-    
-    const aliceTotal = aliceUTXOs.reduce((sum, utxo) => sum + utxo.amount, 0);
-    const bobTotal = bobUTXOs.reduce((sum, utxo) => sum + utxo.amount, 0);
-    const charlieTotal = charlieUTXOs.reduce((sum, utxo) => sum + utxo.amount, 0);
+
+    const aliceBalance = aliceUTXOs.reduce((sum: number, utxo: any) => sum + utxo.amount, 0);
+    const bobBalance = bobUTXOs.reduce((sum: number, utxo: any) => sum + utxo.amount, 0);
+    const charlieBalance = charlieUTXOs.reduce((sum: number, utxo: any) => sum + utxo.amount, 0);
+
+    // Update wallet balances
+    await prisma.wallet.update({
+      where: { address: 'alice-wallet-123' },
+      data: { balance: aliceBalance }
+    });
+
+    await prisma.wallet.update({
+      where: { address: 'bob-wallet-456' },
+      data: { balance: bobBalance }
+    });
+
+    await prisma.wallet.update({
+      where: { address: 'charlie-wallet-789' },
+      data: { balance: charlieBalance }
+    });
+
+    console.log('✅ Wallet balances updated');
+
+    // Display summary using Prisma aggregations
+    const blockCount = await prisma.block.count();
+    const transactionCount = await prisma.transaction.count();
+    const walletCount = await prisma.wallet.count();
+    const utxoCount = await prisma.uTXO.count({ where: { isSpent: false } });
+    const totalValueResult = await prisma.uTXO.aggregate({
+      where: { isSpent: false },
+      _sum: { amount: true }
+    });
+
+    console.log('\n📊 Seed Summary:');
+    console.log(`   🧱 Total Blocks: ${blockCount}`);
+    console.log(`   📝 Total Transactions: ${transactionCount}`);
+    console.log(`   👛 Total Wallets: ${walletCount}`);
+    console.log(`   💰 Unspent UTXOs: ${utxoCount}`);
+    console.log(`   💵 Total Value: ${totalValueResult._sum.amount || 0} coins`);
+    console.log(`   📂 Database file: database/blockchain.db`);
+
+    // Test queries using Prisma
+
+    const aliceTotal = aliceUTXOs.reduce((sum: any, utxo: { amount: any; }) => sum + utxo.amount, 0);
+    const bobTotal = bobUTXOs.reduce((sum: any, utxo: { amount: any; }) => sum + utxo.amount, 0);
+    const charlieTotal = charlieUTXOs.reduce((sum: any, utxo: { amount: any; }) => sum + utxo.amount, 0);
     
     console.log(`   Alice UTXOs: ${aliceUTXOs.length} (${aliceTotal} coins)`);
     console.log(`   Bob UTXOs: ${bobUTXOs.length} (${bobTotal} coins)`);
@@ -316,9 +377,9 @@ async function runPrismaSeed() {
       }
     });
 
-    blocks.forEach(block => {
+    blocks.forEach((block: any) => {
       console.log(`   Block ${block.index}: ${block.hash.substring(0, 16)}...`);
-      block.transactions.forEach(tx => {
+      block.transactions.forEach((tx: any) => {
         console.log(`     └─ ${tx.from} → ${tx.to}: ${tx.amount} coins (fee: ${tx.fee})`);
       });
     });

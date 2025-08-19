@@ -9,7 +9,7 @@ interface TabNavigationProps {
 
 const tabs = [
   { value: 'utxo', label: 'UTXO' },
-  { value: 'driver-sessions', label: 'Driver Sessions' },
+  { value: 'wallets', label: 'Wallet' },
   { value: 'payments', label: 'Payments' },
   { value: 'history', label: 'History' },
 ];

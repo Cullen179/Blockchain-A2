@@ -25,6 +25,10 @@ export default async function Homepage({ searchParams }: Props) {
         const { UTXOManagerIndex } = await import('./utxo/page');
         return <UTXOManagerIndex />;
       }
+      case 'wallets': {
+        const { WalletIndex } = await import('./wallet/page');
+        return <WalletIndex />;
+      }
       default: {
         const { UTXOManagerIndex } = await import('./utxo/page');
         return <UTXOManagerIndex />;
