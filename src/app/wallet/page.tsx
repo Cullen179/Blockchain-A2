@@ -18,6 +18,7 @@ import { WALLET_BASE_URL } from '@/constants/api';
 import { fetchAPI } from '@/lib/fetch';
 import { IUTXO, IWallet } from '@/types/blocks';
 import CreateWalletButton from './CreateWalletButton';
+import CreateTransactionButton from './CreateTransactionButton';
 
 export const WalletIndex = () => {
   return (
@@ -34,6 +35,8 @@ async function Wallets() {
 
   return (
     <div>
+      <CreateTransactionButton wallet={wallets[4]} />
+      
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Wallets</h1>

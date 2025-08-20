@@ -2,13 +2,13 @@ import crypto from 'crypto';
 
 
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 
 
 import { prisma } from "@/lib/prisma";
 import { WalletRepository } from "@/repositories/WalletRepository";
-import { IUTXO, IUTXOSet, IWallet } from "@/types/blocks";
+import { ITransaction, IUTXO, IUTXOSet, IWallet } from "@/types/blocks";
 
 
 
@@ -86,6 +86,72 @@ export class Wallet {
     }
   }
 
+  static async signTransaction(request: NextRequest) {
+    try {
+      // Parse and validate request body
+      const body: {
+          transaction: ITransaction;
+          privateKey?: string;
+          walletAddress?: string;
+      } = await request.json();
+      const { transaction , privateKey, walletAddress } = body;
+  
+      if (walletAddress) {
+        // Fetch private key from wallet repository
+        const wallet =  await WalletRepository.findByAddress(walletAddress);
+        if (!wallet) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Wallet not found',
+              message: `No wallet found with address: ${walletAddress}`,
+            },
+            { status: 404 }
+          );
+        }
+      }
+
+      if (!privateKey) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Missing private key',
+            message: 'Either privateKey or walletAddress must be provided',
+          },
+          { status: 400 }
+        );
+      }
+      
+      const sign = crypto.createSign('SHA256');
+      sign.update(transaction.toString());
+      sign.end();
+      
+            
+      const signature = sign.sign(privateKey, 'hex');
+      transaction.inputs.forEach((input) => {
+        input.scriptSig = signature;
+      });
+  
+      return NextResponse.json({
+        success: true,
+        signedTransaction: transaction,
+        message: 'Transaction signed successfully',
+      });
+  
+    } catch (error) {
+      console.error('Error signing transaction:', error);
+  
+      return NextResponse.json(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          message: 'Invalid request data',
+        },
+        { status: 400 }
+      );
+    }
+  }
+
   /**
    * Create a new transaction from the wallet
    * @param amount - Amount to send
@@ -155,19 +221,6 @@ export class Wallet {
     this.signTransaction(transaction);
 
     return transaction;
-  }
-
-  public signTransaction(transaction: Transaction): void {
-    const signature = crypto.createSign('SHA256');
-    const scriptSig = signature.sign(this.privateKey, 'hex');
-
-    signature.update(JSON.stringify(transaction));
-    transaction.inputs.forEach((input) => {
-      input.scriptSig = scriptSig;
-    });
-
-    // Update transaction size after signing
-    transaction.size = transaction.calculateSize();
   }
 
   public getBalance(): number {
