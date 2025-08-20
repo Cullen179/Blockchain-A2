@@ -145,6 +145,8 @@ export class UTXOManager {
   static async validateTransactionInputs(
     transaction: ITransaction
   ): Promise<boolean> {
+
+    let totalInputValue = 0;
     for (const input of transaction.inputs) {
       // Check database using repository
       const dbUTXO = await UTXORepository.getByTransactionAndOutput(
@@ -157,10 +159,26 @@ export class UTXOManager {
         console.error(`UTXO not found or already spent: ${utxoKey}`);
         return false;
       }
+
+      // Validate UTXO address matches input address
+
+
+      totalInputValue += dbUTXO.amount;
+    }
+
+    // UTXO amount is sufficient to cover transaction amount and fee
+    const isValid = totalInputValue >= transaction.amount + transaction.fee;
+    if (!isValid) {
+      console.error(
+        `Insufficient UTXO amount: ${totalInputValue} < ${transaction.amount + transaction.fee}`
+      );
+      return false;
     }
 
     return true;
   }
+
+
 
   /**
    * Get all UTXOs for a specific address (from database for accuracy)
@@ -216,35 +234,6 @@ export class UTXOManager {
     };
   }
 
-  /**
-   * Calculate transaction fee from inputs and outputs
-   */
-  static async calculateTransactionFee(
-    transaction: ITransaction
-  ): Promise<number> {
-    let inputTotal = 0;
-    let outputTotal = 0;
-
-    // Sum input values using repository
-    for (const input of transaction.inputs) {
-      const utxo = await UTXORepository.getByTransactionAndOutput(
-        input.previousTransactionId,
-        input.outputIndex
-      );
-
-      if (utxo) {
-        inputTotal += utxo.amount;
-      }
-    }
-
-    // Sum output values
-    outputTotal = transaction.outputs.reduce(
-      (sum, output) => sum + output.amount,
-      0
-    );
-
-    return inputTotal - outputTotal;
-  }
 
   /**
    * Get the total balance for an address (from database)

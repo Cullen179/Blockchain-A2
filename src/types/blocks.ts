@@ -60,7 +60,6 @@ export interface ITransactionInput {
   previousTransactionId: string;
   outputIndex: number;
   scriptSig: string;
-  // sequence: number;
 }
 
 export interface ITransactionOutput {
