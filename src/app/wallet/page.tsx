@@ -72,7 +72,7 @@ function WalletCard({ wallet }: { wallet: IWallet }) {
           </CardTitle>
           <Badge variant="secondary">{wallet.utxos?.length || 0} UTXOs</Badge>
         </div>
-        <CardDescription className="flex items-center gap-2">
+        <CardDescription className="flex items-center gap-2 w-60">
           <span className="truncate font-mono text-xs">{wallet.address}</span>
           <CopyButton text={wallet.address} label="Address" />
         </CardDescription>

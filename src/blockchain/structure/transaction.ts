@@ -1,7 +1,7 @@
 import { ITransaction, ITransactionInput, ITransactionOutput } from "@/types/blocks";
 import crypto from 'crypto';
 
-export class Transaction implements ITransaction {
+export class Transaction {
    public id: string;
   public from: string;
   public to: string;

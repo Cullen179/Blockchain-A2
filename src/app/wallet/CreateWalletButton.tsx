@@ -4,7 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
-import { Eye, EyeOff, Key, Wallet, Copy, RefreshCw } from 'lucide-react';
+import { Eye, EyeOff, Key, Wallet as WalletIcon, Copy, RefreshCw } from 'lucide-react';
+import { Wallet } from '@/blockchain/structure/wallet';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +28,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { fetchAPI } from '@/lib/fetch';
 import { toast } from 'sonner';
+import { WALLET_BASE_URL } from '@/constants/api';
 
 const formSchema = z.object({
   address: z.string().min(1, 'Address is required'),
@@ -52,28 +54,22 @@ export default function CreateWalletButton() {
 
   // Generate new wallet keys
   const generateWalletKeys = async () => {
-    setIsGenerating(true);
     try {
-      // Simulate key generation (replace with actual crypto implementation)
-      const timestamp = Date.now();
-      const randomSuffix = Math.random().toString(36).substring(2, 15);
-      
-      // In a real implementation, use proper cryptographic functions
-      const address = `bc1q${randomSuffix}${timestamp.toString().slice(-6)}`;
-      const publicKey = `04${Array(128).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-      const privateKey = `L${Array(50).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+      const { address, privateKey, publicKey } = await fetchAPI<{
+        address: string;
+        privateKey: string;
+        publicKey: string;
+      }>(`${WALLET_BASE_URL}/key`, {
+        method: 'POST',
+      });
 
       // Update form values
       form.setValue('address', address);
       form.setValue('publicKey', publicKey);
       form.setValue('privateKey', privateKey);
-
-      toast.success('Wallet keys generated successfully!');
     } catch (error) {
-      console.error('Error generating keys:', error);
+      console.error('Error generating wallet keys:', error);
       toast.error('Failed to generate wallet keys');
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -104,7 +100,6 @@ export default function CreateWalletButton() {
       // Reset form and close dialog
       form.reset();
       setDialogOpen(false);
-      setShowPrivateKey(false);
 
     } catch (error) {
       console.error('Error creating wallet:', error);
@@ -116,7 +111,7 @@ export default function CreateWalletButton() {
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
         <Button className="mb-4" size="lg">
-          <Wallet className="mr-2 h-4 w-4" />
+          <WalletIcon className="mr-2 h-4 w-4" />
           Create New Wallet
         </Button>
       </DialogTrigger>
@@ -124,7 +119,7 @@ export default function CreateWalletButton() {
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
+            <WalletIcon className="h-5 w-5" />
             Create New Wallet
           </DialogTitle>
           <DialogDescription>
@@ -141,7 +136,7 @@ export default function CreateWalletButton() {
                 onClick={generateWalletKeys}
                 disabled={isGenerating}
                 variant="outline"
-                className="w-full max-w-xs"
+                className="w-full"
               >
                 {isGenerating ? (
                   <>
@@ -307,24 +302,6 @@ export default function CreateWalletButton() {
                 </FormItem>
               )}
             />
-
-            {/* Warning Message */}
-            {form.getValues('privateKey') && (
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                <div className="flex items-start gap-2">
-                  <div className="text-yellow-600 dark:text-yellow-400">⚠️</div>
-                  <div className="text-sm">
-                    <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                      Security Warning
-                    </p>
-                    <p className="text-yellow-700 dark:text-yellow-300 mt-1">
-                      Make sure to securely backup your private key before creating the wallet. 
-                      Once created, you'll need this key to access your funds.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Action Buttons */}
             <div className="flex gap-2 pt-4">

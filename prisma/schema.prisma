@@ -28,10 +28,10 @@ model Block {
 
 model Transaction {
   id        String   @id
-  from      String   // Changed from fromAddress to match ITransaction.from
-  to        String   // Changed from toAddress to match ITransaction.to
-  amount    Int      // Changed from Float to Int to match interface
-  fee       Int      // Changed from Float to Int to match interface
+  from      String   
+  to        String   
+  amount    Int      
+  fee       Int      
   timestamp Int
   size      Int      @default(0)
   blockHash String?  @map("block_hash")

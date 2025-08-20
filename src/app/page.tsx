@@ -28,6 +28,10 @@ export default async function Homepage({ searchParams }: Props) {
       case 'wallets': {
         const { WalletIndex } = await import('./wallet/page');
         return <WalletIndex />;
+      };
+      case 'transactions': {
+        const { TransactionIndex } = await import('./transaction/page');
+        return <TransactionIndex />;
       }
       default: {
         const { UTXOManagerIndex } = await import('./utxo/page');
