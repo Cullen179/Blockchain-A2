@@ -36,3 +36,5 @@ export const getStatusColor = (status: string) => {
       return 'bg-gray-100 text-gray-800';
   }
 };
+
+export const formatBTC = (satoshi: number) => (satoshi / 100000000).toFixed(8);
