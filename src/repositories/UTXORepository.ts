@@ -1,14 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { IUTXO } from '@/types/blocks';
 
-
-
 import { Prisma, UTXO } from '../generated/prisma';
-import { ISearchableRepository } from './base/IRepository';
-
-
-
-
 
 export class UTXORepository {
   static async findById(id: string): Promise<IUTXO | null> {
@@ -136,10 +129,11 @@ export class UTXORepository {
 
   static async markAsSpent(
     transactionId: string,
-    outputIndex: number
+    outputIndex: number,
+    tx?: any
   ): Promise<boolean> {
     try {
-      await prisma.uTXO.updateMany({
+      await (tx || prisma).uTXO.updateMany({
         where: {
           transactionId,
           outputIndex,

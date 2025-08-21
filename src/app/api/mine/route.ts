@@ -4,6 +4,8 @@ import { MempoolRepository } from '@/repositories/MempoolRepository';
 import { createHash } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { BLOCKCHAIN_CONFIG } from '@/constants';
+import { UTXOManager } from '@/blockchain/structure/utxo';
+import { WalletRepository } from '@/repositories/WalletRepository';
 
 interface MiningRequest {
   maxIterations?: number;
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json() as MiningRequest;
-    const maxIterations = body.maxIterations || 1000000; // Default 1M iterations max
+    const maxIterations = body.maxIterations || 10000000000; // Default 10B iterations max
 
     // Get blockchain and mempool data
     const [blockchain, mempool] = await Promise.all([
@@ -139,21 +141,29 @@ export async function POST(request: NextRequest) {
           );
           await BlockRepository.addBlockToBlockchain(
             mempool.transactions,{
-            hash,
-            index: nextIndex,
-            previousHash,
-            merkleRoot,
-            timestamp,
-            nonce,
-            size: blockSize
-          }, tx);
+              hash,
+              index: nextIndex,
+              previousHash,
+              merkleRoot,
+              timestamp,
+              nonce,
+              size: blockSize
+            }, tx);
+            
+            await Promise.all(
+              mempool.transactions.map(async transaction => {
+                await UTXOManager.processTransaction(transaction, tx);
+                await WalletRepository.syncBalance(transaction.from, tx);
+                await WalletRepository.syncBalance(transaction.to, tx);
+              })
+          );
 
           // if the elapsed time and the expected block mine time, adjust the difficulty
           if (Math.abs(elapsedTime - BLOCKCHAIN_CONFIG.MINING.BLOCK_TIME_TARGET) > BLOCKCHAIN_CONFIG.MINING.BLOCK_TIME_TARGET / 2) {
             await BlockRepository.adjustDifficulty(elapsedTime > BLOCKCHAIN_CONFIG.MINING.BLOCK_TIME_TARGET ? false : true, tx);
           }
         }, {
-          timeout: 10000 // 100 seconds timeout
+          timeout: 20000 // 20 seconds timeout
         });
 
         const result: MiningResult = {

@@ -109,7 +109,7 @@ export default function MineBlockButton() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          maxIterations: 1000000 // 1 million iterations max
+          maxIterations: 10000000000 // 10 billion iterations max
         }),
       });
 

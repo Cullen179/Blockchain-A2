@@ -10,7 +10,7 @@ export class UTXOManager {
   /**
    * Add UTXOs from a new transaction's outputs (to both memory and database)
    */
-  static async addUTXOs(transaction: ITransaction): Promise<void> {
+  static async addUTXOs(transaction: ITransaction, tx?: any): Promise<void> {
     // Create UTXOs using repository
     for (let index = 0; index < transaction.outputs.length; index++) {
       const output = transaction.outputs[index];
@@ -24,7 +24,7 @@ export class UTXOManager {
       };
 
       // Save to database via repository
-      await UTXORepository.create(utxo);
+      await UTXORepository.create(utxo, tx);
     }
   }
 
@@ -98,7 +98,7 @@ export class UTXOManager {
   /**
    * Remove UTXOs that are spent by transaction inputs (from both memory and database)
    */
-  static async removeUTXOs(transaction: ITransaction): Promise<IUTXO[]> {
+  static async removeUTXOs(transaction: ITransaction, tx?: any): Promise<IUTXO[]> {
     const spentUTXOs: IUTXO[] = [];
 
     for (const input of transaction.inputs) {
@@ -114,7 +114,8 @@ export class UTXOManager {
         // Mark as spent in database using repository
         await UTXORepository.markAsSpent(
           input.previousTransactionId,
-          input.outputIndex
+          input.outputIndex,
+          tx
         );
       }
     }
@@ -125,17 +126,17 @@ export class UTXOManager {
   /**
    * Process a complete transaction (remove spent UTXOs, add new UTXOs)
    */
-  static async processTransaction(transaction: ITransaction): Promise<boolean> {
+  static async processTransaction(transaction: ITransaction, tx?: any): Promise<boolean> {
     // First validate that all inputs exist and can be spent
     if (!(await this.validateTransactionInputs(transaction))) {
       return false;
     }
 
     // Remove spent UTXOs (from both memory and database)
-    await this.removeUTXOs(transaction);
+    await this.removeUTXOs(transaction, tx);
 
     // Add new UTXOs to recipients and changes to sender (to both memory and database)
-    await this.addUTXOs(transaction);
+    await this.addUTXOs(transaction, tx);
 
     return true;
   }
