@@ -9,7 +9,6 @@ import { formatAmount, formatDate, getStatusColor } from "@/lib/utils";
 import { ITransaction } from "@/types/blocks";
 import { Clock, Coins, Eye, Hash } from "lucide-react";
 import TransactionTable from "./TransactionTable";
-import CreateTransactionButton from "./CreateTransactionButton";
 
 export const TransactionIndex = () => { 
   return (
@@ -44,7 +43,6 @@ async function Transaction() {
             {transactions.length} Total
           </Badge>
 
-          <CreateTransactionButton />
         </div>
       </div>
 

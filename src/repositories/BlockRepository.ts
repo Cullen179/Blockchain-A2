@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { IBlock, IBlockHeader, ITransaction } from "@/types/blocks";
+import { TransactionRepository } from "./TransactionRepository";
 
 export interface IBlockchain {
   id: string;
@@ -133,7 +134,7 @@ export class BlockRepository {
       const blockchain = await prisma.blockchain.findFirst({
         include: {
           blocks: {
-            orderBy: { index: 'asc' },
+            orderBy: { index: 'desc' },
             include: {
               transactions: {
                 include: {
@@ -165,7 +166,7 @@ export class BlockRepository {
    * Add a block to a blockchain
    */
   static async addBlockToBlockchain(
-    blockchainId: string,
+    transactions: ITransaction[],
     blockData: {
       hash: string;
       index: number;
@@ -174,21 +175,19 @@ export class BlockRepository {
       timestamp: number;
       nonce: number;
       size: number;
-    }
+    }, tx: any
   ): Promise<IBlock> {
     try {
-      const blockchain = await prisma.blockchain.findUnique({
-        where: { id: blockchainId },
-      });
+      const blockchain = await this.getDefaultBlockchain();
 
       if (!blockchain) {
         throw new Error('Blockchain not found');
       }
-
-      const block = await prisma.block.create({
+      
+      const block = await tx.block.create({
         data: {
           ...blockData,
-          blockchainId,
+          blockchainId: blockchain.id,
         },
         include: {
           transactions: {
@@ -200,11 +199,22 @@ export class BlockRepository {
           blockchain: true,
         },
       });
+      
+      // update the transactions blockhash
+      await Promise.all(
+        transactions.map(async (transaction: ITransaction) =>
+          await tx.transaction.update({
+            where: { id: transaction.id },
+            data: { blockHash: block.hash },
+          })
+        )
+      );
+
 
       return this.formatBlock(block);
     } catch (error) {
       console.error('Error adding block to blockchain:', error);
-      throw new Error('Failed to add block to blockchain');
+      throw new Error(error instanceof Error ? error.message : 'Failed to add block to blockchain');
     }
   }
 
@@ -315,5 +325,28 @@ export class BlockRepository {
       throw new Error('Failed to update blockchain difficulty');
     }
   }
+
+  static async adjustDifficulty(
+    increase: boolean = false,
+    tx: any
+  ): Promise<void> {
+    try {
+      const blockchain = await this.getDefaultBlockchain();
+      if (!blockchain) {
+        throw new Error('Blockchain not found');
+      }
+
+      const newDifficulty = increase ? Math.min(10, blockchain.difficulty + 1) : Math.max(1, blockchain.difficulty - 1);
+      await tx.blockchain.update({
+        where: { id: blockchain.id },
+        data: { difficulty: newDifficulty },
+      });
+
+    } catch (error) {
+      console.error('Error adjusting difficulty:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to adjust difficulty');
+    }
+  }
 }
+
 

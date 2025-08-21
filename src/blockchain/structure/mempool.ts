@@ -119,7 +119,7 @@ export class Mempool {
       });
 
       if (!lowestFeeTransaction) {
-        throw new Error('No transactions found in the mempool');
+        return ; // No transaction to replace
       }
 
       if (newTransaction.fee <= lowestFeeTransaction.fee) {

@@ -9,7 +9,7 @@ export const BLOCKCHAIN_CONFIG = {
     DEFAULT_DIFFICULTY: 4,
     MIN_DIFFICULTY: 1,
     MAX_DIFFICULTY: 10,
-    BLOCK_TIME_TARGET: 10000, // 10 seconds in milliseconds
+    BLOCK_TIME_TARGET: 4000, // 4 seconds in milliseconds
     DIFFICULTY_ADJUSTMENT_INTERVAL: 10, // blocks
   },
   TRANSACTION: {

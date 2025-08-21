@@ -29,6 +29,7 @@ import {
   Users,
   Zap
 } from "lucide-react"
+import MineBlockButton from "./MineBlockButton"
 
 export const MempoolIndex = () => { 
   return (
@@ -89,6 +90,7 @@ async function MempoolPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <MineBlockButton />
           <Button variant="outline" size="sm">
             <Trash2 className="h-4 w-4 mr-2" />
             Clear Pool
@@ -286,3 +288,5 @@ async function MempoolPage() {
     </div>
   )
 }
+
+export default MempoolIndex;

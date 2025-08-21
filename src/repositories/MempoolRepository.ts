@@ -1,7 +1,7 @@
-import { prisma } from "@/lib/prisma";
-import { IMempool, ITransaction } from "@/types/blocks";
-import { NextResponse } from "next/server";
-import { fa } from "zod/v4/locales";
+import { prisma } from '@/lib/prisma';
+import { IMempool, ITransaction } from '@/types/blocks';
+import { NextResponse } from 'next/server';
+import { fa } from 'zod/v4/locales';
 
 export class MempoolRepository {
   /**
@@ -52,9 +52,9 @@ export class MempoolRepository {
             include: {
               inputs: true,
               outputs: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       // Transform to IMempool interface
@@ -62,7 +62,7 @@ export class MempoolRepository {
         id: mempool.id,
         maxSize: mempool.maxSize,
         currentSize: mempool.currentSize,
-        transactions: []
+        transactions: [],
       };
     } catch (error) {
       console.error('Error creating mempool:', error);
@@ -88,7 +88,7 @@ export class MempoolRepository {
 
       // Check if transaction exists and is not already in a block
       const findTransaction = await prisma.transaction.findUnique({
-        where: { id: transaction.id }
+        where: { id: transaction.id },
       });
 
       if (!findTransaction) {
@@ -108,17 +108,17 @@ export class MempoolRepository {
       }
 
       // Add transaction to mempool
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async tx => {
         // Update transaction to reference mempool
         await tx.transaction.update({
           where: { id: transaction.id },
-          data: { mempoolId: mempool.id }
+          data: { mempoolId: mempool.id },
         });
 
         // Update mempool current size by incrementing transaction size
         await tx.mempool.update({
           where: { id: mempool.id },
-          data: { currentSize: { increment: transaction.size } }
+          data: { currentSize: { increment: transaction.size } },
         });
       });
     } catch (error) {
@@ -128,7 +128,9 @@ export class MempoolRepository {
   }
 
   // Verify transaction inputs exist in the mempool
-  static async verifyTransactionInputsExist(transaction: ITransaction): Promise<boolean> {
+  static async verifyTransactionInputsExist(
+    transaction: ITransaction
+  ): Promise<boolean> {
     try {
       const mempool = await this.getDefaultMempool();
       if (!mempool) {
@@ -143,8 +145,13 @@ export class MempoolRepository {
           }
           // check if memInputs is the same as transaction inputs
           transaction.inputs.forEach(input => {
-            if (input.previousTransactionId === memInput.previousTransactionId && input.outputIndex === memInput.outputIndex) {
-              throw new Error('Transaction inputs already exist in the mempool');
+            if (
+              input.previousTransactionId === memInput.previousTransactionId &&
+              input.outputIndex === memInput.outputIndex
+            ) {
+              throw new Error(
+                'Transaction inputs already exist in the mempool'
+              );
             }
           });
         });
@@ -152,37 +159,41 @@ export class MempoolRepository {
       return false; // If no inputs match, return false
     } catch (error) {
       console.error('Error verifying transaction inputs:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to verify transaction inputs');
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to verify transaction inputs'
+      );
     }
   }
 
   /**
    * Remove a transaction from the mempool
    */
-  static async removeTransaction(mempoolId: string, transactionId: string): Promise<void> {
+  static async removeTransaction(
+    mempoolId: string,
+    transactionId: string,
+    tx: any
+  ): Promise<void> {
     try {
       // Verify transaction is in this mempool
-      const transaction = await prisma.transaction.findUnique({
-        where: { id: transactionId }
+      const transaction = await tx.transaction.findUnique({
+        where: { id: transactionId },
       });
 
       if (!transaction || transaction.mempoolId !== mempoolId) {
         throw new Error('Transaction not found in this mempool');
       }
 
-      // Remove transaction from mempool
-      await prisma.$transaction(async (tx) => {
-        // Update transaction to remove mempool reference
-        await tx.transaction.update({
-          where: { id: transactionId },
-          data: { mempoolId: null }
-        });
+      await tx.transaction.update({
+        where: { id: transactionId },
+        data: { mempoolId: null },
+      });
 
-        // Update mempool current size
-        await tx.mempool.update({
-          where: { id: mempoolId },
-          data: { currentSize: { decrement: 1 } }
-        });
+      // Update mempool current size
+      await tx.mempool.update({
+        where: { id: mempoolId },
+        data: { currentSize: { decrement: transaction.size } },
       });
     } catch (error) {
       console.error('Error removing transaction from mempool:', error);
@@ -193,7 +204,10 @@ export class MempoolRepository {
   /**
    * Get transactions from mempool sorted by priority (fee descending, timestamp ascending)
    */
-  static async getTransactionsByPriority(mempoolId: string, limit?: number): Promise<ITransaction[]> {
+  static async getTransactionsByPriority(
+    mempoolId: string,
+    limit?: number
+  ): Promise<ITransaction[]> {
     try {
       const mempool = await prisma.mempool.findUnique({
         where: { id: mempoolId },
@@ -203,13 +217,10 @@ export class MempoolRepository {
               inputs: true,
               outputs: true,
             },
-            orderBy: [
-              { fee: 'desc' },
-              { timestamp: 'asc' }
-            ],
-            ...(limit && { take: limit })
-          }
-        }
+            orderBy: [{ fee: 'desc' }, { timestamp: 'asc' }],
+            ...(limit && { take: limit }),
+          },
+        },
       });
 
       if (!mempool) {
@@ -234,7 +245,7 @@ export class MempoolRepository {
           amount: Number(output.amount),
           address: output.address,
           scriptPubKey: output.scriptPubKey,
-        }))
+        })),
       }));
     } catch (error) {
       console.error('Error getting transactions by priority:', error);
@@ -247,17 +258,17 @@ export class MempoolRepository {
    */
   static async clearMempool(mempoolId: string): Promise<void> {
     try {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async tx => {
         // Remove mempool reference from all transactions
         await tx.transaction.updateMany({
           where: { mempoolId: mempoolId },
-          data: { mempoolId: null }
+          data: { mempoolId: null },
         });
 
         // Reset current size
         await tx.mempool.update({
           where: { id: mempoolId },
-          data: { currentSize: 0 }
+          data: { currentSize: 0 },
         });
       });
     } catch (error) {
@@ -279,19 +290,31 @@ export class MempoolRepository {
             select: {
               fee: true,
               size: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       if (!mempool) {
         throw new Error('Mempool not found');
       }
 
-      const totalFees = mempool.transactions.reduce((sum, tx) => sum + Number(tx.fee), 0);
-      const totalSize = mempool.transactions.reduce((sum, tx) => sum + Number(tx.size), 0);
-      const avgFee = mempool.transactions.length > 0 ? totalFees / mempool.transactions.length : 0;
-      const avgSize = mempool.transactions.length > 0 ? totalSize / mempool.transactions.length : 0;
+      const totalFees = mempool.transactions.reduce(
+        (sum, tx) => sum + Number(tx.fee),
+        0
+      );
+      const totalSize = mempool.transactions.reduce(
+        (sum, tx) => sum + Number(tx.size),
+        0
+      );
+      const avgFee =
+        mempool.transactions.length > 0
+          ? totalFees / mempool.transactions.length
+          : 0;
+      const avgSize =
+        mempool.transactions.length > 0
+          ? totalSize / mempool.transactions.length
+          : 0;
       const utilizationRate = (mempool.currentSize / mempool.maxSize) * 100;
 
       return {
@@ -320,7 +343,7 @@ export class MempoolRepository {
     try {
       const mempool = await prisma.mempool.findUnique({
         where: { id: mempoolId },
-        include: { _count: { select: { transactions: true } } }
+        include: { _count: { select: { transactions: true } } },
       });
 
       if (!mempool) {
@@ -328,11 +351,13 @@ export class MempoolRepository {
       }
 
       if (mempool._count.transactions > 0) {
-        throw new Error('Cannot delete mempool with transactions. Clear it first.');
+        throw new Error(
+          'Cannot delete mempool with transactions. Clear it first.'
+        );
       }
 
       await prisma.mempool.delete({
-        where: { id: mempoolId }
+        where: { id: mempoolId },
       });
     } catch (error) {
       console.error('Error deleting mempool:', error);
