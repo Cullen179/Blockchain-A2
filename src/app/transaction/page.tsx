@@ -21,7 +21,12 @@ export const TransactionIndex = () => {
 
 async function Transaction() {
 
-  const transactions = await fetchAPI<(ITransaction & { status: 'confirmed' | 'pending' | 'failed' })[]>(TRANSACTION_BASE_URL, {
+  const transactions = await fetchAPI<
+    (ITransaction & {
+      blockHash: string | null;
+      mempoolId: string | null;
+    })[]
+  >(TRANSACTION_BASE_URL, {
     method: 'GET',
   });
 

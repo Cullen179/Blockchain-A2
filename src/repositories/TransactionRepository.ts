@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
-
+import { prisma } from '@/lib/prisma';
+import { ITransaction } from '@/types/blocks';
+import { NextResponse } from 'next/server';
 
 export class TransactionRepository {
   static async getAllTransactions() {
@@ -10,17 +10,57 @@ export class TransactionRepository {
           inputs: true,
           outputs: true,
         },
+        orderBy: {
+          timestamp: 'desc', // 'desc' for newest first, 'asc' for oldest first
+        },
       });
-
-      return NextResponse.json(transactions);
+      return NextResponse.json(
+        transactions.map(transaction => ({
+          ...transaction,
+          timestamp: Number(transaction.timestamp),
+        }))
+      );
     } catch (error) {
       console.error('Error fetching transactions:', error);
       return NextResponse.json(
         { error: 'Failed to fetch transactions' },
         { status: 500 }
-      );  
+      );
     }
   }
+  static async createTransaction(transaction: ITransaction): Promise<void> {
+    try {
+      await prisma.transaction.create({
+        data: {
+          id: transaction.id,
+          from: transaction.from,
+          to: transaction.to,
+          amount: transaction.amount,
+          fee: transaction.fee,
+          timestamp: transaction.timestamp,
+          size: transaction.size,
 
-  // Additional methods for creating, updating, and deleting transactions can be added here
+          // Create related inputs
+          inputs: {
+            create: transaction.inputs.map(input => ({
+              previousTransactionId: input.previousTransactionId,
+              outputIndex: input.outputIndex,
+              scriptSig: input.scriptSig,
+            })),
+          },
+          // Create related outputs
+          outputs: {
+            create: transaction.outputs.map(output => ({
+              address: output.address,
+              amount: output.amount,
+              scriptPubKey: output.scriptPubKey,
+            })),
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Error creating transaction:', error);
+      throw new Error('Failed to create transaction');
+    }
+  }
 }

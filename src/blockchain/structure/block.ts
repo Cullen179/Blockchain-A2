@@ -109,7 +109,6 @@ export class Block implements IBlock {
       errors.push('Hash contains invalid hexadecimal characters');
     }
 
-    console.log(`Block hash verification: ${isValid ? 'valid' : 'invalid'}`);
     // Log errors if any
     if (errors.length > 0) {
       console.error('Hash verification errors:', errors);

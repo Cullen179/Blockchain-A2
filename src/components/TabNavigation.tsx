@@ -11,7 +11,8 @@ const tabs = [
   { value: 'utxo', label: 'UTXO' },
   { value: 'wallets', label: 'Wallet' },
   { value: 'transactions', label: 'Transactions' },
-  { value: 'history', label: 'History' },
+  { value: 'mempool', label: 'Mempool' },
+  { value: 'blockchain', label: 'Blockchain' },
 ];
 
 export const TabNavigation = ({ activeTab }: TabNavigationProps) => {
@@ -36,7 +37,7 @@ export const TabNavigation = ({ activeTab }: TabNavigationProps) => {
         onValueChange={handleTabChange}
         className="w-full"
       >
-        <TabsList className="grid grid-cols-4 gap-2 p-1">
+        <TabsList className="grid grid-cols-5 gap-2 p-1">
           {tabs.map(tab => (
             <TabsTrigger key={tab.value} value={tab.value} className="">
               {tab.label}

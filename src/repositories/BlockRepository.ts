@@ -1,324 +1,319 @@
-import { IBlock, ITransaction } from '@/types/blocks';
-import { ISearchableRepository } from './base/IRepository';
-import { prisma } from '@/lib/prisma';
-import { Block, Transaction, Prisma } from '../generated/prisma';
+import { prisma } from "@/lib/prisma";
+import { IBlock, IBlockHeader, ITransaction } from "@/types/blocks";
 
-export interface IBlockRepository extends ISearchableRepository<IBlock, string> {
-  findByIndex(index: number): Promise<IBlock | null>;
-  findByHash(hash: string): Promise<IBlock | null>;
-  findByRange(startIndex: number, endIndex: number): Promise<IBlock[]>;
-  getLatestBlock(): Promise<IBlock | null>;
-  getBlockHeight(): Promise<number>;
-  getBlockTransactions(blockId: string): Promise<ITransaction[]>;
+export interface IBlockchain {
+  id: string;
+  difficulty: number;
+  createdAt: Date;
+  updatedAt: Date;
+  blocks?: IBlock[];
 }
 
-export class BlockRepository implements IBlockRepository {
-
-  async findById(id: string): Promise<IBlock | null> {
-    const block = await prisma.block.findUnique({
-      where: { hash: id },
-      include: {
-        transactions: {
-          include: {
-            inputs: true,
-            outputs: true
-          }
-        }
-      }
-    });
-    
-    if (!block) return null;
-
-    return this.mapBlockToInterface(block);
-  }
-
-  async findAll(): Promise<IBlock[]> {
-    const blocks = await prisma.block.findMany({
-      include: {
-        transactions: {
-          include: {
-            inputs: true,
-            outputs: true
-          }
-        }
-      },
-      orderBy: { indexNum: 'desc' }
-    });
-    
-    return blocks.map(this.mapBlockToInterface);
-  }
-
-  async create(block: IBlock): Promise<IBlock> {
-    const createdBlock = await prisma.$transaction(async (tx) => {
-      // Create block record
-      const newBlock = await tx.block.create({
-        data: {
-          hash: block.hash,
-          indexNum: block.header.index,
-          previousHash: block.header.previousHash,
-          merkleRoot: block.merkleRoot,
-          timestamp: block.timestamp,
-          nonce: block.nonce,
-          difficulty: block.header.difficulty,
-          transactionCount: block.transactionCount,
-          size: block.size
-        }
-      });
-
-      // Update transactions with block hash
-      if (block.transactions.length > 0) {
-        await tx.transaction.updateMany({
-          where: {
-            id: {
-              in: block.transactions.map(t => t.id)
-            }
-          },
-          data: {
-            blockHash: block.hash
-          }
-        });
-      }
-
-      return newBlock;
-    });
-
-    // Return the full block with transactions
-    return this.findById(createdBlock.hash) as Promise<IBlock>;
-  }
-
-  async update(id: string, blockData: Partial<IBlock>): Promise<IBlock | null> {
-    const existing = await this.findById(id);
-    
-    if (!existing) return null;
-
-    const updatedBlock = await prisma.block.update({
-      where: { hash: id },
-      data: {
-        ...(blockData.hash && { hash: blockData.hash }),
-        ...(blockData.merkleRoot && { merkleRoot: blockData.merkleRoot }),
-        ...(blockData.timestamp && { timestamp: blockData.timestamp }),
-        ...(blockData.nonce && { nonce: blockData.nonce }),
-        ...(blockData.header?.difficulty && { difficulty: blockData.header.difficulty }),
-        ...(blockData.transactionCount && { transactionCount: blockData.transactionCount }),
-        ...(blockData.size && { size: blockData.size })
-      },
-      include: {
-        transactions: {
-          include: {
-            inputs: true,
-            outputs: true
-          }
-        }
-      }
-    });
-
-    return this.mapBlockToInterface(updatedBlock);
-  }
-
-  async delete(id: string): Promise<boolean> {
-    try {
-      await prisma.$transaction(async (tx) => {
-        // Remove block hash from transactions
-        await tx.transaction.updateMany({
-          where: { blockHash: id },
-          data: { blockHash: null }
-        });
-        
-        // Delete the block
-        await tx.block.delete({
-          where: { hash: id }
-        });
-      });
-      
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  async exists(id: string): Promise<boolean> {
-    const block = await prisma.block.findUnique({
-      where: { hash: id },
-      select: { hash: true }
-    });
-    return !!block;
-  }
-
-  async findBy(criteria: Partial<IBlock>): Promise<IBlock[]> {
-    const where: Prisma.BlockWhereInput = {};
-
-    if (criteria.hash) {
-      where.hash = criteria.hash;
-    }
-
-    if (criteria.header?.index !== undefined) {
-      where.indexNum = criteria.header.index;
-    }
-
-    if (criteria.header?.previousHash) {
-      where.previousHash = criteria.header.previousHash;
-    }
-
-    const blocks = await prisma.block.findMany({
-      where,
-      include: {
-        transactions: {
-          include: {
-            inputs: true,
-            outputs: true
-          }
-        }
-      },
-      orderBy: { indexNum: 'desc' }
-    });
-    
-    return blocks.map(this.mapBlockToInterface);
-  }
-
-  async count(criteria?: Partial<IBlock>): Promise<number> {
-    const where: Prisma.BlockWhereInput = {};
-
-    if (criteria?.hash) {
-      where.hash = criteria.hash;
-    }
-
-    if (criteria?.header?.index !== undefined) {
-      where.indexNum = criteria.header.index;
-    }
-
-    return prisma.block.count({ where });
-  }
-
-  async findByIndex(index: number): Promise<IBlock | null> {
-    const block = await prisma.block.findUnique({
-      where: { indexNum: index },
-      include: {
-        transactions: {
-          include: {
-            inputs: true,
-            outputs: true
-          }
-        }
-      }
-    });
-    
-    if (!block) return null;
-    return this.mapBlockToInterface(block);
-  }
-
-  async findByHash(hash: string): Promise<IBlock | null> {
-    return this.findById(hash);
-  }
-
-  async findByRange(startIndex: number, endIndex: number): Promise<IBlock[]> {
-    const blocks = await prisma.block.findMany({
-      where: {
-        indexNum: {
-          gte: startIndex,
-          lte: endIndex
-        }
-      },
-      include: {
-        transactions: {
-          include: {
-            inputs: true,
-            outputs: true
-          }
-        }
-      },
-      orderBy: { indexNum: 'asc' }
-    });
-    
-    return blocks.map(this.mapBlockToInterface);
-  }
-
-  async getLatestBlock(): Promise<IBlock | null> {
-    const block = await prisma.block.findFirst({
-      include: {
-        transactions: {
-          include: {
-            inputs: true,
-            outputs: true
-          }
-        }
-      },
-      orderBy: { indexNum: 'desc' }
-    });
-    
-    if (!block) return null;
-    return this.mapBlockToInterface(block);
-  }
-
-  async getBlockHeight(): Promise<number> {
-    const result = await prisma.block.aggregate({
-      _max: { indexNum: true }
-    });
-    return result._max.indexNum ?? -1;
-  }
-
-  async getBlockTransactions(blockHash: string): Promise<ITransaction[]> {
-    const transactions = await prisma.transaction.findMany({
-      where: { blockHash },
-      include: {
-        inputs: true,
-        outputs: true
-      },
-      orderBy: { createdAt: 'asc' }
-    });
-    
-    return transactions.map(this.mapTransactionToInterface);
-  }
-
-  private mapBlockToInterface(block: Block & {
-    transactions: (Transaction & {
-      inputs: any[];
-      outputs: any[];
-    })[];
-  }): IBlock {
+export class BlockRepository {
+  /**
+   * Convert Prisma block to IBlock format
+   */
+  private static formatBlock(block: any): IBlock {
     return {
+      hash: block.hash,
       header: {
-        index: block.indexNum,
+        index: block.index,
         timestamp: block.timestamp,
         previousHash: block.previousHash,
         merkleRoot: block.merkleRoot,
         nonce: block.nonce,
-        difficulty: block.difficulty
+        difficulty: block.blockchain?.difficulty || 4, // Default difficulty if not available
       },
-      hash: block.hash,
-      transactions: block.transactions.map(this.mapTransactionToInterface),
+      transactions: block.transactions?.map((tx: any) => ({
+        id: tx.id,
+        from: tx.from,
+        to: tx.to,
+        amount: Number(tx.amount),
+        fee: Number(tx.fee),
+        timestamp: Number(tx.timestamp),
+        size: Number(tx.size),
+        inputs: tx.inputs?.map((input: any) => ({
+          previousTransactionId: input.previousTransactionId,
+          outputIndex: Number(input.outputIndex),
+          scriptSig: input.scriptSig,
+        })) || [],
+        outputs: tx.outputs?.map((output: any) => ({
+          amount: Number(output.amount),
+          address: output.address,
+          scriptPubKey: output.scriptPubKey,
+        })) || [],
+      })) || [],
       size: block.size,
-      transactionCount: block.transactionCount,
+      transactionCount: block.transactions?.length || 0,
       nonce: block.nonce,
       timestamp: block.timestamp,
-      merkleRoot: block.merkleRoot
+      merkleRoot: block.merkleRoot,
     };
   }
 
-  private mapTransactionToInterface(transaction: Transaction & {
-    inputs?: any[];
-    outputs?: any[];
-  }): ITransaction {
-    const inputs = transaction.inputs || [];
-    const outputs = transaction.outputs || [];
-    
-    return {
-      id: transaction.id,
-      from: inputs.length > 0 ? 'multiple_inputs' : transaction.fromAddress,
-      to: outputs.length > 0 ? outputs[0]?.address : transaction.toAddress,
-      amount: outputs.reduce((sum: number, output: any) => sum + output.amount, 0) || transaction.amount,
-      fee: transaction.fee,
-      timestamp: transaction.timestamp,
-      inputs: inputs.map((input: any) => ({
-        previousTransactionId: input.previousTransactionId,
-        outputIndex: input.outputIndex,
-        scriptSig: input.signature
-      })),
-      outputs: outputs.map((output: any) => ({
-        address: output.address,
-        amount: output.amount,
-        scriptPubKey: output.scriptPubKey
-      })),
-      size: transaction.size
-    };
+  /**
+   * Create a new blockchain
+   */
+  static async createBlockchain(difficulty: number = 4): Promise<IBlockchain> {
+    try {
+      const blockchain = await prisma.blockchain.create({
+        data: {
+          difficulty,
+        },
+        include: {
+          blocks: {
+            orderBy: { index: 'asc' },
+            include: {
+              transactions: {
+                include: {
+                  inputs: true,
+                  outputs: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return {
+        id: blockchain.id,
+        difficulty: blockchain.difficulty,
+        createdAt: blockchain.createdAt,
+        updatedAt: blockchain.updatedAt,
+        blocks: blockchain.blocks?.map(block => this.formatBlock({ ...block, blockchain })),
+      };
+    } catch (error) {
+      console.error('Error creating blockchain:', error);
+      throw new Error('Failed to create blockchain');
+    }
+  }
+
+  /**
+   * Get blockchain by ID
+   */
+  static async getBlockchainById(id: string): Promise<IBlockchain | null> {
+    try {
+      const blockchain = await prisma.blockchain.findUnique({
+        where: { id },
+        include: {
+          blocks: {
+            orderBy: { index: 'asc' },
+            include: {
+              transactions: {
+                include: {
+                  inputs: true,
+                  outputs: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!blockchain) return null;
+
+      return {
+        id: blockchain.id,
+        difficulty: blockchain.difficulty,
+        createdAt: blockchain.createdAt,
+        updatedAt: blockchain.updatedAt,
+        blocks: blockchain.blocks?.map(block => this.formatBlock({ ...block, blockchain })),
+      };
+    } catch (error) {
+      console.error('Error fetching blockchain:', error);
+      throw new Error('Failed to fetch blockchain');
+    }
+  }
+
+  /**
+   * Get the default (first) blockchain
+   */
+  static async getDefaultBlockchain(): Promise<IBlockchain | null> {
+    try {
+      const blockchain = await prisma.blockchain.findFirst({
+        include: {
+          blocks: {
+            orderBy: { index: 'asc' },
+            include: {
+              transactions: {
+                include: {
+                  inputs: true,
+                  outputs: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!blockchain) return null;
+
+      return {
+        id: blockchain.id,
+        difficulty: blockchain.difficulty,
+        createdAt: blockchain.createdAt,
+        updatedAt: blockchain.updatedAt,
+        blocks: blockchain.blocks?.map(block => this.formatBlock({ ...block, blockchain })),
+      };
+    } catch (error) {
+      console.error('Error fetching default blockchain:', error);
+      throw new Error('Failed to fetch default blockchain');
+    }
+  }
+
+  /**
+   * Add a block to a blockchain
+   */
+  static async addBlockToBlockchain(
+    blockchainId: string,
+    blockData: {
+      hash: string;
+      index: number;
+      previousHash: string;
+      merkleRoot: string;
+      timestamp: number;
+      nonce: number;
+      size: number;
+    }
+  ): Promise<IBlock> {
+    try {
+      const blockchain = await prisma.blockchain.findUnique({
+        where: { id: blockchainId },
+      });
+
+      if (!blockchain) {
+        throw new Error('Blockchain not found');
+      }
+
+      const block = await prisma.block.create({
+        data: {
+          ...blockData,
+          blockchainId,
+        },
+        include: {
+          transactions: {
+            include: {
+              inputs: true,
+              outputs: true,
+            },
+          },
+          blockchain: true,
+        },
+      });
+
+      return this.formatBlock(block);
+    } catch (error) {
+      console.error('Error adding block to blockchain:', error);
+      throw new Error('Failed to add block to blockchain');
+    }
+  }
+
+  /**
+   * Get block by hash
+   */
+  static async getBlockByHash(hash: string): Promise<IBlock | null> {
+    try {
+      const block = await prisma.block.findUnique({
+        where: { hash },
+        include: {
+          transactions: {
+            include: {
+              inputs: true,
+              outputs: true,
+            },
+          },
+          blockchain: true,
+        },
+      });
+
+      if (!block) return null;
+
+      return this.formatBlock(block);
+    } catch (error) {
+      console.error('Error fetching block:', error);
+      throw new Error('Failed to fetch block');
+    }
+  }
+
+  /**
+   * Get all blocks in a blockchain
+   */
+  static async getBlocksByBlockchainId(blockchainId: string): Promise<IBlock[]> {
+    try {
+      const blocks = await prisma.block.findMany({
+        where: { blockchainId },
+        orderBy: { index: 'asc' },
+        include: {
+          transactions: {
+            include: {
+              inputs: true,
+              outputs: true,
+            },
+          },
+          blockchain: true,
+        },
+      });
+
+      return blocks.map(block => this.formatBlock(block));
+    } catch (error) {
+      console.error('Error fetching blocks:', error);
+      throw new Error('Failed to fetch blocks');
+    }
+  }
+
+  /**
+   * Get the latest block in a blockchain
+   */
+  static async getLatestBlock(blockchainId: string): Promise<IBlock | null> {
+    try {
+      const block = await prisma.block.findFirst({
+        where: { blockchainId },
+        orderBy: { index: 'desc' },
+        include: {
+          transactions: {
+            include: {
+              inputs: true,
+              outputs: true,
+            },
+          },
+          blockchain: true,
+        },
+      });
+
+      if (!block) return null;
+
+      return this.formatBlock(block);
+    } catch (error) {
+      console.error('Error fetching latest block:', error);
+      throw new Error('Failed to fetch latest block');
+    }
+  }
+
+  /**
+   * Update blockchain difficulty
+   */
+  static async updateBlockchainDifficulty(blockchainId: string, difficulty: number): Promise<IBlockchain> {
+    try {
+      const blockchain = await prisma.blockchain.update({
+        where: { id: blockchainId },
+        data: { difficulty },
+        include: {
+          blocks: {
+            orderBy: { index: 'asc' },
+          },
+        },
+      });
+
+      return {
+        id: blockchain.id,
+        difficulty: blockchain.difficulty,
+        createdAt: blockchain.createdAt,
+        updatedAt: blockchain.updatedAt,
+      };
+    } catch (error) {
+      console.error('Error updating blockchain difficulty:', error);
+      throw new Error('Failed to update blockchain difficulty');
+    }
   }
 }
+

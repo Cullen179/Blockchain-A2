@@ -32,7 +32,15 @@ export default async function Homepage({ searchParams }: Props) {
       case 'transactions': {
         const { TransactionIndex } = await import('./transaction/page');
         return <TransactionIndex />;
-      }
+      };
+      case 'mempool': {
+        const { MempoolIndex } = await import('./mempool/page');
+        return <MempoolIndex />;
+      };
+      case 'blockchain': {
+        const { BlockchainIndex } = await import('./blockchain/page');
+        return <BlockchainIndex />;
+      };
       default: {
         const { UTXOManagerIndex } = await import('./utxo/page');
         return <UTXOManagerIndex />;

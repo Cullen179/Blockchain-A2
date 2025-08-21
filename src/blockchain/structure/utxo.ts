@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { UTXORepository } from '@/repositories/UTXORepository';
 import { WalletRepository } from '@/repositories/WalletRepository';
-import { ITransaction, IUTXO, IUTXOSet } from '@/types/blocks';
+import { ITransaction, ITransactionInput, IUTXO, IUTXOSet } from '@/types/blocks';
+import crypto from 'crypto';
 
 export class UTXOManager {
   /**
@@ -146,7 +147,15 @@ export class UTXOManager {
     transaction: ITransaction
   ): Promise<boolean> {
 
-    let totalInputValue = 0;
+    // get sender public key from wallet repository
+    const wallet = await WalletRepository.findByAddress(transaction.from);
+    if (!wallet) {
+      console.error(`Sender wallet not found`);
+      throw new Error(`Sender wallet not found`);
+    }
+
+    const publicKey = wallet.publicKey;
+
     for (const input of transaction.inputs) {
       // Check database using repository
       const dbUTXO = await UTXORepository.getByTransactionAndOutput(
@@ -155,30 +164,67 @@ export class UTXOManager {
       );
 
       if (!dbUTXO || dbUTXO.isSpent) {
-        const utxoKey = `${input.previousTransactionId}:${input.outputIndex}`;
-        console.error(`UTXO not found or already spent: ${utxoKey}`);
-        return false;
+        console.error(
+          `UTXO not found or already spent`
+        );
+        throw new Error(`UTXO not found or already spent`);
       }
 
       // Validate UTXO address matches input address
 
-
-      totalInputValue += dbUTXO.amount;
-    }
-
-    // UTXO amount is sufficient to cover transaction amount and fee
-    const isValid = totalInputValue >= transaction.amount + transaction.fee;
-    if (!isValid) {
-      console.error(
-        `Insufficient UTXO amount: ${totalInputValue} < ${transaction.amount + transaction.fee}`
-      );
-      return false;
+      if (this.verifyInputSignature(transaction, input, publicKey) === false) {
+        console.error(
+          `Invalid input signature for UTXO`
+        );
+        throw new Error(`Invalid input signature for UTXO`);
+      }
+      // totalInputValue += dbUTXO.amount;
     }
 
     return true;
   }
 
+  static verifyInputSignature(
+    transaction: ITransaction,
+    input: ITransactionInput,
+    publicKey: string
+  ): boolean {
+    
+    // Get the same raw serialized data used for signing
+    const transactionData = this.createTransactionHash(transaction);
+    
+    const verify = crypto.createVerify('SHA256');
+    verify.update(transactionData); // Use the raw serialized data
+    verify.end();
 
+    const isValid = verify.verify(
+      publicKey,
+      input.scriptSig,
+      'hex'
+    );
+    
+    return isValid;
+  }
+
+  static createTransactionHash(
+    transaction: ITransaction
+  ): string {
+     const transactionData = {
+       id: '',
+       from: transaction.from,
+       to: transaction.to,
+       amount: transaction.amount,
+       fee: transaction.fee,
+       inputs: transaction.inputs.map((input) => ({
+         previousTransactionId: input.previousTransactionId,
+         outputIndex: input.outputIndex,
+         scriptSig: '',
+       })),
+     }
+     // Return the serialized data directly, not the hash
+     // Both signing and verification should use the same raw data
+     return JSON.stringify(transactionData);
+  }
 
   /**
    * Get all UTXOs for a specific address (from database for accuracy)

@@ -13,9 +13,20 @@ async function runPrismaSeed() {
     await prisma.transactionInput.deleteMany();
     await prisma.transaction.deleteMany();
     await prisma.block.deleteMany();
+    await prisma.blockchain.deleteMany();
     await prisma.wallet.deleteMany();
+    await prisma.mempool.deleteMany();
 
     console.log('📝 Inserting sample blockchain data...');
+
+    // Create the main blockchain first
+    console.log('⛓️  Creating blockchain...');
+    const blockchain = await prisma.blockchain.create({
+      data: {
+        difficulty: 4,
+      }
+    });
+    console.log('✅ Blockchain created:', blockchain.id);
 
     // Create Wallets first
     console.log('👛 Creating wallets...');
@@ -50,25 +61,37 @@ async function runPrismaSeed() {
 
     console.log('✅ Wallets created successfully');
 
+    // Create empty Mempool
+    console.log('🔄 Creating mempool...');
+    const mempool = await prisma.mempool.create({
+      data: {
+        maxSize: 1000,
+        currentSize: 0,
+      }
+    });
+    
+    console.log('✅ Empty mempool created successfully');
+
     // Create Genesis Block first
     const genesisBlockHash = 'genesis-block-000';
+    const genesisTimestamp = Math.floor(Date.now() / 1000);
+    
+    console.log('🧱 Creating Genesis Block...');
     const genesisBlock = await prisma.block.create({
       data: {
         hash: genesisBlockHash,
         index: 0,
         previousHash: '0000000000000000000000000000000000000000000000000000000000000000',
         merkleRoot: 'genesis-merkle-root',
-        timestamp: Math.floor(Date.now() / 1000),
+        timestamp: genesisTimestamp,
         nonce: 0,
-        difficulty: 1,
         size: 1000,
-        transactionCount: 1
+        blockchainId: blockchain.id  // Associate with the blockchain
       }
     });
 
     // Genesis transaction
     const genesisTransactionId = 'genesis-tx-001';
-    const genesisTimestamp = Math.floor(Date.now() / 1000); // Unix timestamp in seconds
 
     const genesisTransaction = await prisma.transaction.create({
       data: {
@@ -108,9 +131,8 @@ async function runPrismaSeed() {
         merkleRoot: 'block-2-merkle-root',
         timestamp: genesisTimestamp + 60,
         nonce: 12345,
-        difficulty: 1,
         size: 1200,
-        transactionCount: 1
+        blockchainId: blockchain.id  // Associate with the blockchain
       }
     });
 
@@ -169,21 +191,18 @@ async function runPrismaSeed() {
       data: [
         {
           transactionId: genesisTransactionId,
-          outputIndex: 0,
           address: 'alice-wallet-123',
           amount: 1000,
           scriptPubKey: 'alice-public-key-script'
         },
         {
           transactionId: tx2Id,
-          outputIndex: 0,
           address: 'bob-wallet-456',
           amount: 500,
           scriptPubKey: 'bob-public-key-script'
         },
         {
           transactionId: tx2Id,
-          outputIndex: 1,
           address: 'alice-wallet-123',
           amount: 490,
           scriptPubKey: 'alice-public-key-script'
@@ -212,9 +231,8 @@ async function runPrismaSeed() {
         merkleRoot: 'block-3-merkle-root',
         timestamp: genesisTimestamp + 120,
         nonce: 67890,
-        difficulty: 1,
         size: 1100,
-        transactionCount: 1
+        blockchainId: blockchain.id  // Associate with the blockchain
       }
     });
 
@@ -270,14 +288,12 @@ async function runPrismaSeed() {
       data: [
         {
           transactionId: tx3Id,
-          outputIndex: 0,
           address: 'charlie-wallet-789',
           amount: 300,
           scriptPubKey: 'charlie-public-key-script'
         },
         {
           transactionId: tx3Id,
-          outputIndex: 1,
           address: 'bob-wallet-456',
           amount: 195,
           scriptPubKey: 'bob-public-key-script'
@@ -333,6 +349,7 @@ async function runPrismaSeed() {
     console.log('✅ Wallet balances updated');
 
     // Display summary using Prisma aggregations
+    const blockchainCount = await prisma.blockchain.count();
     const blockCount = await prisma.block.count();
     const transactionCount = await prisma.transaction.count();
     const walletCount = await prisma.wallet.count();
@@ -342,13 +359,19 @@ async function runPrismaSeed() {
       _sum: { amount: true }
     });
 
+    // Get mempool count
+    const mempoolCount = await prisma.mempool.count();
+
     console.log('\n📊 Seed Summary:');
+    console.log(`   ⛓️  Total Blockchains: ${blockchainCount}`);
     console.log(`   🧱 Total Blocks: ${blockCount}`);
     console.log(`   📝 Total Transactions: ${transactionCount}`);
     console.log(`   👛 Total Wallets: ${walletCount}`);
+    console.log(`   🔄 Mempools: ${mempoolCount}`);
     console.log(`   💰 Unspent UTXOs: ${utxoCount}`);
     console.log(`   💵 Total Value: ${totalValueResult._sum.amount || 0} coins`);
     console.log(`   📂 Database file: database/blockchain.db`);
+    console.log(`   🆔 Blockchain ID: ${blockchain.id}`);
 
     // Test queries using Prisma
 
@@ -363,6 +386,7 @@ async function runPrismaSeed() {
     // Display blockchain structure
     console.log('\n⛓️  Blockchain Structure:');
     const blocks = await prisma.block.findMany({
+      where: { blockchainId: blockchain.id },
       orderBy: { index: 'asc' },
       include: {
         transactions: {
@@ -378,14 +402,15 @@ async function runPrismaSeed() {
     });
 
     blocks.forEach((block: any) => {
-      console.log(`   Block ${block.index}: ${block.hash.substring(0, 16)}...`);
+      console.log(`   Block ${block.index}: ${block.hash.substring(0, 16)}... (blockchain: ${block.blockchainId?.substring(0, 8)}...)`);
       block.transactions.forEach((tx: any) => {
         console.log(`     └─ ${tx.from} → ${tx.to}: ${tx.amount} coins (fee: ${tx.fee})`);
       });
     });
 
-    console.log('\n🎉 Database seed completed successfully with Prisma!');
-    console.log('💡 You can now run: pnpm run dev');
+    console.log('\n🎉 Database seed completed successfully with Blockchain and Prisma!');
+    console.log('💡 You can now run: npm run dev');
+    console.log(`💡 Test the BlockRepository with blockchain ID: ${blockchain.id}`);
 
   } catch (error) {
     console.error('❌ Seed failed:', error);

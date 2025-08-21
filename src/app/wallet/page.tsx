@@ -35,7 +35,6 @@ async function Wallets() {
 
   return (
     <div>
-      <CreateTransactionButton wallet={wallets[4]} />
       
       <div className="mb-8 flex items-center justify-between">
         <div>
@@ -124,12 +123,7 @@ function WalletCard({ wallet }: { wallet: IWallet }) {
         )}
 
         <div className="flex gap-2 pt-2">
-          <Button variant="outline" size="sm" className="flex-1">
-            Send
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1">
-            Receive
-          </Button>
+          <CreateTransactionButton wallet={wallet} />
         </div>
       </CardContent>
     </Card>

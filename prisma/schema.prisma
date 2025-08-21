@@ -8,19 +8,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Block {
-  hash             String   @id
-  index            Int      @unique
-  previousHash     String   @map("previous_hash")
-  merkleRoot       String   @map("merkle_root")
-  timestamp        Int
-  nonce            Int
-  difficulty       Int
-  size             Int      @default(0)
-  transactionCount Int      @default(0) @map("transaction_count")
-  createdAt        DateTime @default(now()) @map("created_at")
+model Blockchain {
+  id         String @id @default(cuid())
+  difficulty Int    @default(4) @map("difficulty")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   // Relations
+  blocks Block[]
+
+  @@map("blockchain")
+}
+
+model Block {
+  hash          String   @id
+  index         Int      @unique
+  previousHash  String   @map("previous_hash")
+  merkleRoot    String   @map("merkle_root")
+  timestamp     Int
+  nonce         Int
+  size          Int      @default(0)
+  blockchainId  String?  @map("blockchain_id") // Optional reference to blockchain
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  blockchain   Blockchain?   @relation(fields: [blockchainId], references: [id])
   transactions Transaction[]
 
   @@map("blocks")
@@ -32,9 +44,10 @@ model Transaction {
   to        String   
   amount    Int      
   fee       Int      
-  timestamp Int
+  timestamp BigInt   
   size      Int      @default(0)
   blockHash String?  @map("block_hash")
+  mempoolId String?  @map("mempool_id") // Reference to mempool
   createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
@@ -42,7 +55,8 @@ model Transaction {
   inputs  TransactionInput[]
   outputs TransactionOutput[]
   utxos   UTXO[]
-
+  mempool Mempool?            @relation(fields: [mempoolId], references: [id])
+  
   @@map("transactions")
 }
 
@@ -63,7 +77,6 @@ model TransactionInput {
 model TransactionOutput {
   id           Int      @id @default(autoincrement())
   transactionId String  @map("transaction_id")
-  outputIndex   Int     @map("output_index")
   address       String
   amount        Int     // Changed from Float to Int
   scriptPubKey  String  @map("script_pub_key")
@@ -104,4 +117,17 @@ model Wallet {
   utxos UTXO[]
 
   @@map("wallets")
+}
+
+model Mempool {
+  id          String        @id @default(cuid())
+  maxSize     Int           @default(1000) // Maximum number of transactions in the mempool
+  currentSize Int           @default(0) 
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  
+  // Relations
+  transactions Transaction[]
+  
+  @@map("mempools")
 }

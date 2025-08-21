@@ -14,7 +14,7 @@ export const formatAmount = (amount: number) => {
   return (amount / 100000000).toFixed(8) + ' BTC';
 };
 
-export const formatDate = (timestamp: string) => {
+export const formatDate = (timestamp: number) => {
   return new Date(timestamp).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',

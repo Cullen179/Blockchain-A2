@@ -109,14 +109,14 @@ export default function UTXOSelector({
                       outputIndex: utxo.outputIndex,
                       scriptSig: '',
                     })),
-                  },
+                    timestamp: Date.now(),
+                  } as ITransaction,
                     privateKey: wallet.privateKey, 
                     walletAddress: wallet.address, 
                 },
               }
             );
 
-            console.log('Signed Transaction:', signedTransaction);
             selectedUTXOs.forEach((utxo, index) => {
               setValue(`inputs.${index}.scriptSig`, signedTransaction.inputs[index].scriptSig);
             });
@@ -228,7 +228,6 @@ export default function UTXOSelector({
       {/* Sign Transaction Button */}
       <Button className="w-full" type="button" onClick={handleSignTransaction}>
         Sign Transaction
-      </Button>
-    </div>
+      </Button>    </div>
   );
 }

@@ -75,3 +75,10 @@ export interface IWallet {
   balance: number;
   utxos: IUTXO[] | [];
 }
+
+export interface IMempool {
+  id: string;
+  transactions: ITransaction[];
+  maxSize: number; // Maximum transactions byte size in the mempool
+  currentSize: number; // Current transactions byte size in the mempool
+}

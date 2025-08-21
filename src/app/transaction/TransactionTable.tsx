@@ -35,15 +35,28 @@ export default function TransactionTable({
   transactions,
 }: {
   transactions: (ITransaction & {
-    status: 'confirmed' | 'pending' | 'failed';
+    blockHash: string | null;
+    mempoolId: string | null;
   })[];
 }) {
+  const enhancedTransactions: (ITransaction & {
+    blockHash: string | null;
+    mempoolId: string | null;
+    status: 'confirmed' | 'pending' | 'failed';
+  })[] = transactions.map(transaction => ({
+    ...transaction,
+    status: transaction.blockHash
+      ? 'confirmed'
+      : transaction.mempoolId
+        ? 'pending'
+        : 'failed',
+  }));
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Filter and search transactions
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((transaction) => {
+    return enhancedTransactions.filter(transaction => {
       // Status filter
       if (statusFilter !== 'all' && transaction.status !== statusFilter) {
         return false;
@@ -80,19 +93,18 @@ export default function TransactionTable({
   return (
     <Card>
       <CardHeader>
-        
         {/* Search and Filter Controls */}
-        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+        <div className="flex flex-col gap-4 pt-4 sm:flex-row">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
             <Input
               placeholder="Search by transaction ID or address..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
-          
+
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by status" />
@@ -109,12 +121,13 @@ export default function TransactionTable({
         {/* Results Count */}
         {(searchQuery || statusFilter !== 'all') && (
           <div className="flex items-center justify-between pt-2">
-            <p className="text-sm text-muted-foreground">
-              Showing {filteredTransactions.length} of {transactions.length} transactions
+            <p className="text-muted-foreground text-sm">
+              Showing {filteredTransactions.length} of {transactions.length}{' '}
+              transactions
             </p>
             {(searchQuery || statusFilter !== 'all') && (
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={() => {
                   setSearchQuery('');
@@ -127,16 +140,16 @@ export default function TransactionTable({
           </div>
         )}
       </CardHeader>
-      
+
       <CardContent>
         {filteredTransactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Search className="text-muted-foreground mb-4 h-12 w-12" />
             <h3 className="mb-2 text-lg font-semibold">No Results Found</h3>
-            <p className="text-muted-foreground text-center mb-4">
+            <p className="text-muted-foreground mb-4 text-center">
               No transactions match your search criteria.
             </p>
-            <Button 
+            <Button
               variant="outline"
               onClick={() => {
                 setSearchQuery('');
@@ -161,9 +174,7 @@ export default function TransactionTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTransactions.map((transaction) => {
-                transaction.status = 'confirmed'; // Assuming status is part of the transaction object
-
+              {filteredTransactions.map(transaction => {
                 return (
                   <TableRow key={transaction.id}>
                     <TableCell>
@@ -213,7 +224,7 @@ export default function TransactionTable({
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm">
                         <Clock className="text-muted-foreground h-3 w-3" />
-                        {formatDate(transaction.timestamp.toString())}
+                        {formatDate(transaction.timestamp)}
                       </div>
                     </TableCell>
 

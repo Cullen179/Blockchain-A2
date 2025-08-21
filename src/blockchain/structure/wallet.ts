@@ -94,11 +94,25 @@ export class Wallet {
           privateKey?: string;
           walletAddress?: string;
       } = await request.json();
-      const { transaction , privateKey, walletAddress } = body;
-  
+      const { transaction, privateKey, walletAddress } = body;
+
+      const transactionData = {
+          id: '',
+          from: transaction.from,
+          to: transaction.to,
+          amount: transaction.amount,
+          fee: transaction.fee,
+          inputs: transaction.inputs.map(input => ({
+              previousTransactionId: input.previousTransactionId,
+              outputIndex: input.outputIndex,
+              scriptSig: '',
+          })),
+      };
+      
+      let wallet: IWallet | null = null;
       if (walletAddress) {
         // Fetch private key from wallet repository
-        const wallet =  await WalletRepository.findByAddress(walletAddress);
+        wallet = await WalletRepository.findByAddress(walletAddress);
         if (!wallet) {
           return NextResponse.json(
             {
@@ -122,8 +136,11 @@ export class Wallet {
         );
       }
       
+      // Use the same method as verification for consistency
+      const txHash = UTXOManager.createTransactionHash(transaction);
+      
       const sign = crypto.createSign('SHA256');
-      sign.update(transaction.toString());
+      sign.update(txHash);
       sign.end();
       
             
@@ -150,85 +167,5 @@ export class Wallet {
         { status: 400 }
       );
     }
-  }
-
-  /**
-   * Create a new transaction from the wallet
-   * @param amount - Amount to send
-   * @param recipientAddress - Address of the recipient
-   * @param fee - Transaction fee
-   * @returns Transaction object
-   */
-  public createTransaction(
-    amount: number,
-    recipientAddress: string,
-    fee: number
-  ): Transaction {
-    const utxoManager = new UTXOManager();
-    if (amount + fee > this.balance) {
-      throw new Error('Insufficient balance for transaction');
-    }
-
-    const selectedUTXOs = utxoManager.selectUTXOsForSpending(
-      this.address,
-      amount + fee
-    );
-
-    if (selectedUTXOs.length === 0) {
-      throw new Error('No sufficient UTXOs found for transaction');
-    }
-
-    const totalSelected = selectedUTXOs.reduce(
-      (sum, utxo) => sum + utxo.amount,
-      0
-    );
-
-    if (totalSelected < amount + fee) {
-      throw new Error(
-        'Selected UTXOs do not cover the transaction amount and fee'
-      );
-    }
-
-    const inputs = selectedUTXOs.map((utxo) => ({
-      previousTransactionId: utxo.transactionId,
-      outputIndex: utxo.outputIndex,
-      scriptSig: '', // This will be filled later with the signature
-    }));
-
-    const outputs = [
-      {
-        amount: amount,
-        scriptPubKey: '', // This will be filled with the recipient's address
-        address: recipientAddress,
-      },
-      {
-        amount: totalSelected - amount - fee, // Change back to the sender
-        scriptPubKey: '', // This will be filled with the sender's address
-        address: this.address,
-      },
-    ];
-
-    const transaction: Transaction = new Transaction(
-      this.address,
-      recipientAddress,
-      amount,
-      fee,
-      inputs,
-      outputs
-    );
-
-    // Sign the transaction
-    this.signTransaction(transaction);
-
-    return transaction;
-  }
-
-  public getBalance(): number {
-    return this.getUTXOs().reduce((sum, utxo) => sum + utxo.amount, 0);
-  }
-
-  public getUTXOs(): IUTXO[] {
-    const utxoManager = new UTXOManager();
-    return utxoManager.getUTXOsForAddress(this.address);
   }
 }
