@@ -22,14 +22,15 @@ export interface IBlockHeader {
 }
 
 export interface IBlock {
-  header: IBlockHeader;
+  index: number;
+  timestamp: number;
+  previousHash: string;
+  merkleRoot: string;
+  nonce: number;
+  difficulty: number;
   hash: string;
   transactions: ITransaction[];
   size: number;
-  transactionCount: number;
-  nonce: number;
-  timestamp: number;
-  merkleRoot: string;
 }
 
 export interface IGenesisBlock extends Omit<IBlock, 'header'> {

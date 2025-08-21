@@ -4,8 +4,9 @@ import { z } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { WalletRepository } from '@/repositories/WalletRepository';
-import { ITransaction } from '@/types/blocks';
+import { ITransaction, IWallet } from '@/types/blocks';
 import { Wallet } from '@/blockchain/structure/wallet';
+import { Transaction } from '@/blockchain/structure/transaction';
 
 // Validation schema for the request body
 const signTransactionSchema = z.object({
@@ -38,7 +39,67 @@ const signTransactionSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  return await Wallet.signTransaction(request);
+
+    try {
+      // Parse and validate request body
+      const body: {
+        transaction: ITransaction;
+        privateKey?: string;
+        walletAddress?: string;
+      } = await request.json();
+      const { transaction, privateKey, walletAddress } = body;
+
+      let wallet: IWallet | null = null;
+      if (walletAddress) {
+        // Fetch private key from wallet repository
+        wallet = await WalletRepository.findByAddress(walletAddress);
+        if (!wallet) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Wallet not found',
+              message: `No wallet found with address: ${walletAddress}`,
+            },
+            { status: 404 }
+          );
+        }
+      }
+
+      if (!privateKey) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Missing private key',
+            message: 'Either privateKey or walletAddress must be provided',
+          },
+          { status: 400 }
+        );
+      }
+
+      // Use the same method as verification for consistency
+      const signedTransaction = Wallet.signTransaction(
+        transaction,
+        privateKey
+      );
+
+      return NextResponse.json({
+        success: true,
+        signedTransaction: signedTransaction,
+        message: 'Transaction signed successfully',
+      });
+    } catch (error) {
+      console.error('Error signing transaction:', error);
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          message: 'Invalid request data',
+        },
+        { status: 400 }
+      );
+    }
+  
 }
 
 // Optional: GET method to retrieve signing information

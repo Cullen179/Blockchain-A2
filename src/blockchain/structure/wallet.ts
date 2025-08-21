@@ -1,23 +1,13 @@
 import crypto from 'crypto';
 
+import { NextRequest, NextResponse } from 'next/server';
 
+import { prisma } from '@/lib/prisma';
+import { WalletRepository } from '@/repositories/WalletRepository';
+import { ITransaction, IUTXO, IUTXOSet, IWallet } from '@/types/blocks';
 
-import { NextRequest, NextResponse } from "next/server";
-
-
-
-import { prisma } from "@/lib/prisma";
-import { WalletRepository } from "@/repositories/WalletRepository";
-import { ITransaction, IUTXO, IUTXOSet, IWallet } from "@/types/blocks";
-
-
-
-import { Transaction } from "./transaction";
-import { UTXOManager } from "./utxo";
-
-
-
-
+import { Transaction } from './transaction';
+import { UTXOManager } from './utxo';
 
 export class Wallet {
   // public address: string;
@@ -86,86 +76,19 @@ export class Wallet {
     }
   }
 
-  static async signTransaction(request: NextRequest) {
-    try {
-      // Parse and validate request body
-      const body: {
-          transaction: ITransaction;
-          privateKey?: string;
-          walletAddress?: string;
-      } = await request.json();
-      const { transaction, privateKey, walletAddress } = body;
-
-      const transactionData = {
-          id: '',
-          from: transaction.from,
-          to: transaction.to,
-          amount: transaction.amount,
-          fee: transaction.fee,
-          inputs: transaction.inputs.map(input => ({
-              previousTransactionId: input.previousTransactionId,
-              outputIndex: input.outputIndex,
-              scriptSig: '',
-          })),
-      };
-      
-      let wallet: IWallet | null = null;
-      if (walletAddress) {
-        // Fetch private key from wallet repository
-        wallet = await WalletRepository.findByAddress(walletAddress);
-        if (!wallet) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'Wallet not found',
-              message: `No wallet found with address: ${walletAddress}`,
-            },
-            { status: 404 }
-          );
-        }
-      }
-
-      if (!privateKey) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Missing private key',
-            message: 'Either privateKey or walletAddress must be provided',
-          },
-          { status: 400 }
-        );
-      }
-      
+  static async signTransaction(transaction: ITransaction, privateKey: string) {
+    
       // Use the same method as verification for consistency
-      const txHash = UTXOManager.createTransactionHash(transaction);
-      
+      const transactionData = Transaction.createTransactionHash(transaction);
+
       const sign = crypto.createSign('SHA256');
-      sign.update(txHash);
+      sign.update(transactionData);
       sign.end();
-      
-            
+
       const signature = sign.sign(privateKey, 'hex');
-      transaction.inputs.forEach((input) => {
+      transaction.inputs.forEach(input => {
         input.scriptSig = signature;
       });
-  
-      return NextResponse.json({
-        success: true,
-        signedTransaction: transaction,
-        message: 'Transaction signed successfully',
-      });
-  
-    } catch (error) {
-      console.error('Error signing transaction:', error);
-  
-      return NextResponse.json(
-        {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          message: 'Invalid request data',
-        },
-        { status: 400 }
-      );
-    }
+      return transaction;
   }
 }

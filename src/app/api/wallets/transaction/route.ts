@@ -10,15 +10,6 @@ export async function POST(request: NextRequest) {
     // Parse the signed transaction data from request body
     const body = await request.json();
 
-    // Validate required fields for signed transaction
-    const { from, to, inputs, outputs, fee, amount } = body;
-
-    try {
-      const validatedBody = TransactionBodySchema.parse(body);
-    } catch (error) {
-      throw new Error('Invalid transaction data format');
-    }
-
     const transaction: ITransaction = {
       ...body,
       id: '',
