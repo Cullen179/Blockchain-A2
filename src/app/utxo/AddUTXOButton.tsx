@@ -56,12 +56,13 @@ export default function AddUTXOButton() {
       });
 
       toast.success('UTXO created successfully');
-
     } catch (error) {
       console.error('Error creating UTXO:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create UTXO');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to create UTXO'
+      );
     }
-    
+
     // Reset form after submission
     form.reset();
   }
@@ -109,8 +110,12 @@ export default function AddUTXOButton() {
                 <FormItem>
                   <FormLabel>Output Index *</FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" placeholder="0" {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      {...field}
+                      onChange={e => field.onChange(Number(e.target.value))}
                       value={field.value?.toString() || ''}
                     />
                   </FormControl>
@@ -149,7 +154,7 @@ export default function AddUTXOButton() {
                       min="0"
                       placeholder="100000000"
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onChange={e => field.onChange(Number(e.target.value))}
                       value={field.value?.toString() || ''}
                     />
                   </FormControl>

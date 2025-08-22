@@ -4,10 +4,10 @@ import { ITransaction } from '@/types/blocks';
 
 /**
  * Simple Transaction Signing and Verification Demo
- * 
+ *
  * This demonstrates the core cryptographic concepts:
  * 1. Generate RSA key pairs
- * 2. Create transaction data 
+ * 2. Create transaction data
  * 3. Sign transaction with private key
  * 4. Verify signature with public key
  * 5. Show tampering detection
@@ -21,7 +21,10 @@ const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
 });
 
 // Create sender address from public key
-const senderAddress = crypto.createHash('sha256').update(publicKey).digest('hex');
+const senderAddress = crypto
+  .createHash('sha256')
+  .update(publicKey)
+  .digest('hex');
 
 // Generate recipient address
 const { publicKey: recipientPublic } = crypto.generateKeyPairSync('rsa', {
@@ -29,7 +32,10 @@ const { publicKey: recipientPublic } = crypto.generateKeyPairSync('rsa', {
   publicKeyEncoding: { type: 'spki', format: 'pem' },
   privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
 });
-const recipientAddress = crypto.createHash('sha256').update(recipientPublic).digest('hex');
+const recipientAddress = crypto
+  .createHash('sha256')
+  .update(recipientPublic)
+  .digest('hex');
 
 // Step 2: Create a transaction
 const transaction: ITransaction = {
@@ -39,11 +45,13 @@ const transaction: ITransaction = {
   amount: 100,
   fee: 5,
   timestamp: Date.now(),
-  inputs: [{
-    previousTransactionId: 'genesis-block-reward-123',
-    outputIndex: 0,
-    scriptSig: '', // Will be filled with signature
-  }],
+  inputs: [
+    {
+      previousTransactionId: 'genesis-block-reward-123',
+      outputIndex: 0,
+      scriptSig: '', // Will be filled with signature
+    },
+  ],
   outputs: [],
   size: 0,
 };
@@ -84,7 +92,9 @@ verifyTampered.update(tamperedHash);
 verifyTampered.end();
 const tamperedValid = verifyTampered.verify(publicKey, signature, 'hex');
 
-console.log(`✗ Tampered transaction valid: ${tamperedValid} (amount changed from ${transaction.amount} to ${tamperedTransaction.amount})`);
+console.log(
+  `✗ Tampered transaction valid: ${tamperedValid} (amount changed from ${transaction.amount} to ${tamperedTransaction.amount})`
+);
 
 // Step 7: Test wrong private key
 const { privateKey: wrongPrivateKey } = crypto.generateKeyPairSync('rsa', {
@@ -109,4 +119,6 @@ console.log('\n=== Summary ===');
 console.log('✓ Correct private key creates valid signatures');
 console.log('✗ Tampered transactions are rejected');
 console.log('✗ Wrong private keys are rejected');
-console.log('\nThis demonstrates the security of digital signatures in blockchain transactions!');
+console.log(
+  '\nThis demonstrates the security of digital signatures in blockchain transactions!'
+);

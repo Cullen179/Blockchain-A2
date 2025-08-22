@@ -112,7 +112,7 @@ export default function UTXOSelector({
           },
         });
 
-        console.log('signedTransaction', signedTransaction);
+      console.log('signedTransaction', signedTransaction);
       selectedUTXOs.forEach((utxo, index) => {
         setValue(
           `inputs.${index}.scriptSig`,

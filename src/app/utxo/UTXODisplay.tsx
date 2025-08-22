@@ -30,7 +30,7 @@ export function UTXODisplay({ utxos }: UTXODisplayProps) {
 
   // Filter and search UTXOs
   const filteredUTXOs = useMemo(() => {
-    return utxos.filter((utxo) => {
+    return utxos.filter(utxo => {
       // Filter by spent status
       const statusMatch =
         filterType === 'all' ||
@@ -50,8 +50,8 @@ export function UTXODisplay({ utxos }: UTXODisplayProps) {
 
   // Calculate statistics
   const stats = useMemo(() => {
-    const unspentUTXOs = utxos.filter((utxo) => !utxo.isSpent);
-    const spentUTXOs = utxos.filter((utxo) => utxo.isSpent);
+    const unspentUTXOs = utxos.filter(utxo => !utxo.isSpent);
+    const spentUTXOs = utxos.filter(utxo => utxo.isSpent);
 
     return {
       total: utxos.length,
@@ -132,7 +132,7 @@ export function UTXODisplay({ utxos }: UTXODisplayProps) {
             <Input
               placeholder="Search by address, transaction ID, or UTXO ID..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="flex-1"
             />
             <div className="flex gap-2">
@@ -176,7 +176,7 @@ export function UTXODisplay({ utxos }: UTXODisplayProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUTXOs.map((utxo) => (
+                {filteredUTXOs.map(utxo => (
                   <TableRow key={utxo.id}>
                     <TableCell className="font-mono text-xs">
                       {truncateHash(utxo.id)}

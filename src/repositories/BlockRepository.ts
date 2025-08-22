@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
-import { IBlock, IBlockHeader, ITransaction } from "@/types/blocks";
-import { TransactionRepository } from "./TransactionRepository";
+import { prisma } from '@/lib/prisma';
+import { IBlock, IBlockHeader, ITransaction } from '@/types/blocks';
+import { TransactionRepository } from './TransactionRepository';
 
 export interface IBlockchain {
   id: string;
@@ -23,25 +23,28 @@ export class BlockRepository {
       merkleRoot: block.merkleRoot,
       nonce: block.nonce,
       difficulty: block.blockchain?.difficulty || 4, // Default difficulty if not available
-      transactions: block.transactions?.map((tx: any) => ({
-        id: tx.id,
-        from: tx.from,
-        to: tx.to,
-        amount: Number(tx.amount),
-        fee: Number(tx.fee),
-        timestamp: Number(tx.timestamp),
-        size: Number(tx.size),
-        inputs: tx.inputs?.map((input: any) => ({
-          previousTransactionId: input.previousTransactionId,
-          outputIndex: Number(input.outputIndex),
-          scriptSig: input.scriptSig,
+      transactions:
+        block.transactions?.map((tx: any) => ({
+          id: tx.id,
+          from: tx.from,
+          to: tx.to,
+          amount: Number(tx.amount),
+          fee: Number(tx.fee),
+          timestamp: Number(tx.timestamp),
+          size: Number(tx.size),
+          inputs:
+            tx.inputs?.map((input: any) => ({
+              previousTransactionId: input.previousTransactionId,
+              outputIndex: Number(input.outputIndex),
+              scriptSig: input.scriptSig,
+            })) || [],
+          outputs:
+            tx.outputs?.map((output: any) => ({
+              amount: Number(output.amount),
+              address: output.address,
+              scriptPubKey: output.scriptPubKey,
+            })) || [],
         })) || [],
-        outputs: tx.outputs?.map((output: any) => ({
-          amount: Number(output.amount),
-          address: output.address,
-          scriptPubKey: output.scriptPubKey,
-        })) || [],
-      })) || [],
       size: block.size,
     };
   }
@@ -75,7 +78,9 @@ export class BlockRepository {
         difficulty: blockchain.difficulty,
         createdAt: blockchain.createdAt,
         updatedAt: blockchain.updatedAt,
-        blocks: blockchain.blocks?.map(block => this.formatBlock({ ...block, blockchain })),
+        blocks: blockchain.blocks?.map(block =>
+          this.formatBlock({ ...block, blockchain })
+        ),
       };
     } catch (error) {
       console.error('Error creating blockchain:', error);
@@ -112,7 +117,9 @@ export class BlockRepository {
         difficulty: blockchain.difficulty,
         createdAt: blockchain.createdAt,
         updatedAt: blockchain.updatedAt,
-        blocks: blockchain.blocks?.map(block => this.formatBlock({ ...block, blockchain })),
+        blocks: blockchain.blocks?.map(block =>
+          this.formatBlock({ ...block, blockchain })
+        ),
       };
     } catch (error) {
       console.error('Error fetching blockchain:', error);
@@ -148,7 +155,9 @@ export class BlockRepository {
         difficulty: blockchain.difficulty,
         createdAt: blockchain.createdAt,
         updatedAt: blockchain.updatedAt,
-        blocks: blockchain.blocks?.map(block => this.formatBlock({ ...block, blockchain })),
+        blocks: blockchain.blocks?.map(block =>
+          this.formatBlock({ ...block, blockchain })
+        ),
       };
     } catch (error) {
       console.error('Error fetching default blockchain:', error);
@@ -169,7 +178,8 @@ export class BlockRepository {
       timestamp: number;
       nonce: number;
       size: number;
-    }, tx: any
+    },
+    tx: any
   ): Promise<IBlock> {
     try {
       const blockchain = await this.getDefaultBlockchain();
@@ -177,7 +187,7 @@ export class BlockRepository {
       if (!blockchain) {
         throw new Error('Blockchain not found');
       }
-      
+
       const block = await tx.block.create({
         data: {
           ...blockData,
@@ -196,19 +206,23 @@ export class BlockRepository {
 
       // update the transactions blockhash
       await Promise.all(
-        transactions.map(async (transaction: ITransaction) =>
-          await tx.transaction.update({
-            where: { id: transaction.id },
-            data: { blockHash: block.hash },
-          })
+        transactions.map(
+          async (transaction: ITransaction) =>
+            await tx.transaction.update({
+              where: { id: transaction.id },
+              data: { blockHash: block.hash },
+            })
         )
       );
-
 
       return this.formatBlock(block);
     } catch (error) {
       console.error('Error adding block to blockchain:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to add block to blockchain');
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to add block to blockchain'
+      );
     }
   }
 
@@ -240,7 +254,10 @@ export class BlockRepository {
   }
 
   // Invalidate subsequent blocks in a blockchain
-  static async invalidateSubsequentBlocks(blockHash: string, tx?: any): Promise<void> {
+  static async invalidateSubsequentBlocks(
+    blockHash: string,
+    tx?: any
+  ): Promise<void> {
     try {
       const blockchain = await this.getDefaultBlockchain();
       if (!blockchain) {
@@ -252,11 +269,11 @@ export class BlockRepository {
       }
 
       let isSubsequent: boolean = false;
-      blockchain.blocks.forEach(async (block) => {
+      blockchain.blocks.forEach(async block => {
         if (block.hash === blockHash) {
           isSubsequent = true;
         }
-        
+
         if (isSubsequent) {
           // delete the block
           await (tx || prisma).block.delete({
@@ -266,14 +283,20 @@ export class BlockRepository {
       });
     } catch (error) {
       console.error('Error invalidating subsequent blocks:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to invalidate subsequent blocks');
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to invalidate subsequent blocks'
+      );
     }
   }
 
   /**
    * Get all blocks in a blockchain
    */
-  static async getBlocksByBlockchainId(blockchainId: string): Promise<IBlock[]> {
+  static async getBlocksByBlockchainId(
+    blockchainId: string
+  ): Promise<IBlock[]> {
     try {
       const blocks = await prisma.block.findMany({
         where: { blockchainId },
@@ -327,7 +350,10 @@ export class BlockRepository {
   /**
    * Update blockchain difficulty
    */
-  static async updateBlockchainDifficulty(blockchainId: string, difficulty: number): Promise<IBlockchain> {
+  static async updateBlockchainDifficulty(
+    blockchainId: string,
+    difficulty: number
+  ): Promise<IBlockchain> {
     try {
       const blockchain = await prisma.blockchain.update({
         where: { id: blockchainId },
@@ -361,17 +387,18 @@ export class BlockRepository {
         throw new Error('Blockchain not found');
       }
 
-      const newDifficulty = increase ? Math.min(10, blockchain.difficulty + 1) : Math.max(1, blockchain.difficulty - 1);
+      const newDifficulty = increase
+        ? Math.min(10, blockchain.difficulty + 1)
+        : Math.max(1, blockchain.difficulty - 1);
       await (tx || prisma).blockchain.update({
         where: { id: blockchain.id },
         data: { difficulty: newDifficulty },
       });
-
     } catch (error) {
       console.error('Error adjusting difficulty:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to adjust difficulty');
+      throw new Error(
+        error instanceof Error ? error.message : 'Failed to adjust difficulty'
+      );
     }
   }
 }
-
-

@@ -1,4 +1,4 @@
-import { BLOCKCHAIN_CONFIG } from "@/constants";
+import { BLOCKCHAIN_CONFIG } from '@/constants';
 
 export interface ITransaction {
   id: string;
@@ -40,7 +40,7 @@ export interface IGenesisBlock extends Omit<IBlock, 'header'> {
 export interface IConsensusData {
   type: string;
   nonce: number;
-  difficulty: number; 
+  difficulty: number;
 }
 
 export interface IUTXO {

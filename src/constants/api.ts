@@ -1,4 +1,4 @@
-export const API_BASE_URL = "http://localhost:3000/api";
+export const API_BASE_URL = 'http://localhost:3000/api';
 
 export const WALLET_BASE_URL = `/wallets`;
 export const TRANSACTION_BASE_URL = `/transactions`;

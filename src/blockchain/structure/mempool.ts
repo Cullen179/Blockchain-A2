@@ -119,11 +119,13 @@ export class Mempool {
       });
 
       if (!lowestFeeTransaction) {
-        return ; // No transaction to replace
+        return; // No transaction to replace
       }
 
       if (newTransaction.fee <= lowestFeeTransaction.fee) {
-        throw new Error('New transaction fee is not higher than the lowest fee transaction');
+        throw new Error(
+          'New transaction fee is not higher than the lowest fee transaction'
+        );
       }
 
       // Remove the lowest fee transaction
@@ -139,7 +141,9 @@ export class Mempool {
       });
     } catch (error) {
       console.error('Error replacing lowest fee transaction:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to replace transaction');
+      throw new Error(
+        error instanceof Error ? error.message : 'Failed to replace transaction'
+      );
     }
   }
 }

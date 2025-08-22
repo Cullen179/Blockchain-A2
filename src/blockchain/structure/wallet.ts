@@ -10,7 +10,6 @@ import { Transaction } from './transaction';
 import { UTXOManager } from './utxo';
 
 export class Wallet {
-
   static async getAllWallets() {
     try {
       const wallets = await prisma.wallet.findMany({
@@ -64,18 +63,17 @@ export class Wallet {
   }
 
   static signTransaction(transaction: ITransaction, privateKey: string) {
-    
-      // Use the same method as verification for consistency
-      const transactionData = Transaction.createTransactionHash(transaction);
+    // Use the same method as verification for consistency
+    const transactionData = Transaction.createTransactionHash(transaction);
 
-      const sign = crypto.createSign('SHA256');
-      sign.update(transactionData);
-      sign.end();
+    const sign = crypto.createSign('SHA256');
+    sign.update(transactionData);
+    sign.end();
 
-      const signature = sign.sign(privateKey, 'hex');
-      transaction.inputs.forEach(input => {
-        input.scriptSig = signature;
-      });
-      return transaction;
+    const signature = sign.sign(privateKey, 'hex');
+    transaction.inputs.forEach(input => {
+      input.scriptSig = signature;
+    });
+    return transaction;
   }
 }

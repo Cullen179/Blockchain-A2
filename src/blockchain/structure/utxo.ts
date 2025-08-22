@@ -3,7 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { UTXORepository } from '@/repositories/UTXORepository';
 import { WalletRepository } from '@/repositories/WalletRepository';
-import { ITransaction, ITransactionInput, IUTXO, IUTXOSet } from '@/types/blocks';
+import {
+  ITransaction,
+  ITransactionInput,
+  IUTXO,
+  IUTXOSet,
+} from '@/types/blocks';
 import crypto from 'crypto';
 
 export class UTXOManager {
@@ -62,7 +67,7 @@ export class UTXOManager {
 
       let createdUTXO: IUTXO | null = null;
 
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async tx => {
         try {
           createdUTXO = await UTXORepository.create(utxoData, tx);
         } catch (error) {
@@ -75,8 +80,7 @@ export class UTXOManager {
         } catch (error) {
           throw new Error('Failed to update wallet balance');
         }
-      }
-    );
+      });
 
       return NextResponse.json({
         success: true,
@@ -88,7 +92,7 @@ export class UTXOManager {
       return NextResponse.json(
         {
           success: false,
-          error:  error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : 'Unknown error',
         },
         { status: 500 }
       );
@@ -98,7 +102,10 @@ export class UTXOManager {
   /**
    * Remove UTXOs that are spent by transaction inputs (from both memory and database)
    */
-  static async removeUTXOs(transaction: ITransaction, tx?: any): Promise<IUTXO[]> {
+  static async removeUTXOs(
+    transaction: ITransaction,
+    tx?: any
+  ): Promise<IUTXO[]> {
     const spentUTXOs: IUTXO[] = [];
 
     for (const input of transaction.inputs) {
@@ -126,7 +133,10 @@ export class UTXOManager {
   /**
    * Process a complete transaction (remove spent UTXOs, add new UTXOs)
    */
-  static async processTransaction(transaction: ITransaction, tx?: any): Promise<boolean> {
+  static async processTransaction(
+    transaction: ITransaction,
+    tx?: any
+  ): Promise<boolean> {
     // First validate that all inputs exist and can be spent
     if (!(await this.validateTransactionInputs(transaction))) {
       return false;
@@ -147,7 +157,6 @@ export class UTXOManager {
   static async validateTransactionInputs(
     transaction: ITransaction
   ): Promise<boolean> {
-
     // get sender public key from wallet repository
     const wallet = await WalletRepository.findByAddress(transaction.from);
     if (!wallet) {
@@ -165,18 +174,14 @@ export class UTXOManager {
       );
 
       if (!dbUTXO || dbUTXO.isSpent) {
-        console.error(
-          `UTXO not found or already spent`
-        );
+        console.error(`UTXO not found or already spent`);
         throw new Error(`UTXO not found or already spent`);
       }
 
       // Validate UTXO address matches input address
 
       if (this.verifyInputSignature(transaction, input, publicKey) === false) {
-        console.error(
-          `Invalid input signature for UTXO`
-        );
+        console.error(`Invalid input signature for UTXO`);
         throw new Error(`Invalid input signature for UTXO`);
       }
       // totalInputValue += dbUTXO.amount;
@@ -190,41 +195,34 @@ export class UTXOManager {
     input: ITransactionInput,
     publicKey: string
   ): boolean {
-    
     // Get the same raw serialized data used for signing
     const transactionData = this.createTransactionHash(transaction);
-    
+
     const verify = crypto.createVerify('SHA256');
     verify.update(transactionData); // Use the raw serialized data
     verify.end();
 
-    const isValid = verify.verify(
-      publicKey,
-      input.scriptSig,
-      'hex'
-    );
-    
+    const isValid = verify.verify(publicKey, input.scriptSig, 'hex');
+
     return isValid;
   }
 
-  static createTransactionHash(
-    transaction: ITransaction
-  ): string {
-     const transactionData = {
-       id: '',
-       from: transaction.from,
-       to: transaction.to,
-       amount: transaction.amount,
-       fee: transaction.fee,
-       inputs: transaction.inputs.map((input) => ({
-         previousTransactionId: input.previousTransactionId,
-         outputIndex: input.outputIndex,
-         scriptSig: '',
-       })),
-     }
-     // Return the serialized data directly, not the hash
-     // Both signing and verification should use the same raw data
-     return JSON.stringify(transactionData);
+  static createTransactionHash(transaction: ITransaction): string {
+    const transactionData = {
+      id: '',
+      from: transaction.from,
+      to: transaction.to,
+      amount: transaction.amount,
+      fee: transaction.fee,
+      inputs: transaction.inputs.map(input => ({
+        previousTransactionId: input.previousTransactionId,
+        outputIndex: input.outputIndex,
+        scriptSig: '',
+      })),
+    };
+    // Return the serialized data directly, not the hash
+    // Both signing and verification should use the same raw data
+    return JSON.stringify(transactionData);
   }
 
   /**
@@ -269,7 +267,7 @@ export class UTXOManager {
     const utxoMap = new Map<string, IUTXO>();
     let totalValue = 0;
 
-    dbUTXOs.forEach((utxo) => {
+    dbUTXOs.forEach(utxo => {
       const utxoKey = `${utxo.transactionId}:${utxo.outputIndex}`;
       utxoMap.set(utxoKey, utxo);
       totalValue += utxo.amount;
@@ -280,7 +278,6 @@ export class UTXOManager {
       totalAmount: totalValue,
     };
   }
-
 
   /**
    * Get the total balance for an address (from database)

@@ -4,7 +4,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
-import { Eye, EyeOff, Key, Wallet as WalletIcon, Copy, RefreshCw } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  Key,
+  Wallet as WalletIcon,
+  Copy,
+  RefreshCw,
+} from 'lucide-react';
 import { Wallet } from '@/blockchain/structure/wallet';
 
 import { Button } from '@/components/ui/button';
@@ -34,7 +41,10 @@ const formSchema = z.object({
   address: z.string().min(1, 'Address is required'),
   publicKey: z.string().min(1, 'Public key is required'),
   privateKey: z.string().min(1, 'Private key is required'),
-  initialBalance: z.number().min(0, 'Initial balance must be 0 or greater').optional(),
+  initialBalance: z
+    .number()
+    .min(0, 'Initial balance must be 0 or greater')
+    .optional(),
 });
 
 export default function CreateWalletButton() {
@@ -96,14 +106,15 @@ export default function CreateWalletButton() {
       });
 
       toast.success('Wallet created successfully!');
-      
+
       // Reset form and close dialog
       form.reset();
       setDialogOpen(false);
-
     } catch (error) {
       console.error('Error creating wallet:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create wallet');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to create wallet'
+      );
     }
   }
 
@@ -116,14 +127,15 @@ export default function CreateWalletButton() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <WalletIcon className="h-5 w-5" />
             Create New Wallet
           </DialogTitle>
           <DialogDescription>
-            Create a new blockchain wallet with generated public and private keys.
+            Create a new blockchain wallet with generated public and private
+            keys.
           </DialogDescription>
         </DialogHeader>
 
@@ -172,7 +184,9 @@ export default function CreateWalletButton() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          onClick={() => copyToClipboard(field.value, 'Address')}
+                          onClick={() =>
+                            copyToClipboard(field.value, 'Address')
+                          }
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -207,7 +221,9 @@ export default function CreateWalletButton() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          onClick={() => copyToClipboard(field.value, 'Public Key')}
+                          onClick={() =>
+                            copyToClipboard(field.value, 'Public Key')
+                          }
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -228,8 +244,11 @@ export default function CreateWalletButton() {
               name="privateKey"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Private Key * 
-                    <span className="text-red-500 text-xs ml-1">(Keep Secret!)</span>
+                  <FormLabel>
+                    Private Key *
+                    <span className="ml-1 text-xs text-red-500">
+                      (Keep Secret!)
+                    </span>
                   </FormLabel>
                   <FormControl>
                     <div className="flex gap-2">
@@ -237,7 +256,7 @@ export default function CreateWalletButton() {
                         <Input
                           type={showPrivateKey ? 'text' : 'password'}
                           placeholder="Generated private key will appear here"
-                          className="font-mono text-xs pr-10"
+                          className="pr-10 font-mono text-xs"
                           {...field}
                           readOnly
                         />
@@ -246,7 +265,7 @@ export default function CreateWalletButton() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6"
+                            className="absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2"
                             onClick={() => setShowPrivateKey(!showPrivateKey)}
                           >
                             {showPrivateKey ? (
@@ -262,7 +281,9 @@ export default function CreateWalletButton() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          onClick={() => copyToClipboard(field.value, 'Private Key')}
+                          onClick={() =>
+                            copyToClipboard(field.value, 'Private Key')
+                          }
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -270,7 +291,8 @@ export default function CreateWalletButton() {
                     </div>
                   </FormControl>
                   <FormDescription className="text-red-600">
-                    ⚠️ Never share your private key! It controls access to your funds.
+                    ⚠️ Never share your private key! It controls access to your
+                    funds.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -291,7 +313,7 @@ export default function CreateWalletButton() {
                       step="0.00000001"
                       placeholder="0"
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onChange={e => field.onChange(Number(e.target.value))}
                       value={field.value?.toString() || ''}
                     />
                   </FormControl>
@@ -318,7 +340,11 @@ export default function CreateWalletButton() {
               </Button>
               <Button
                 type="submit"
-                disabled={!form.getValues('privateKey') || !form.getValues('publicKey') || !form.getValues('address')}
+                disabled={
+                  !form.getValues('privateKey') ||
+                  !form.getValues('publicKey') ||
+                  !form.getValues('address')
+                }
                 className="flex-1"
               >
                 Create Wallet

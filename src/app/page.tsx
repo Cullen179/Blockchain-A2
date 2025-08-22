@@ -28,19 +28,19 @@ export default async function Homepage({ searchParams }: Props) {
       case 'wallets': {
         const { WalletIndex } = await import('./wallet/page');
         return <WalletIndex />;
-      };
+      }
       case 'transactions': {
         const { TransactionIndex } = await import('./transaction/page');
         return <TransactionIndex />;
-      };
+      }
       case 'mempool': {
         const { MempoolIndex } = await import('./mempool/page');
         return <MempoolIndex />;
-      };
+      }
       case 'blockchain': {
         const { BlockchainIndex } = await import('./blockchain/page');
         return <BlockchainIndex />;
-      };
+      }
       default: {
         const { UTXOManagerIndex } = await import('./utxo/page');
         return <UTXOManagerIndex />;
@@ -52,11 +52,10 @@ export default async function Homepage({ searchParams }: Props) {
     <div className="space-y-6">
       {/* Header Section */}
       <div className="space-y-2">
-        <Typography variant="h1">
-          Blockchain Management Dashboard
-        </Typography>
+        <Typography variant="h1">Blockchain Management Dashboard</Typography>
         <Typography variant="p" className="text-muted-foreground">
-          Here you can manage your blockchain network, monitor transactions, and optimize performance.
+          Here you can manage your blockchain network, monitor transactions, and
+          optimize performance.
         </Typography>
       </div>
 

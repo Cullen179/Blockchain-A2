@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  Card,
-  CardContent, CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -21,11 +17,11 @@ import {
 } from 'lucide-react';
 import { Typography } from '@/components/ui/typography';
 
-
 export default function BlockchainDisplay({
-  blockchain }: { blockchain: IBlockchain;
+  blockchain,
+}: {
+  blockchain: IBlockchain;
 }) {
-
   if (!blockchain) {
     return (
       <div>
@@ -162,9 +158,7 @@ export default function BlockchainDisplay({
                       <div className="text-muted-foreground flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {new Date(
-                            block.timestamp * 1000
-                          ).toLocaleString()}
+                          {new Date(block.timestamp * 1000).toLocaleString()}
                         </div>
                         <div className="flex items-center gap-1">
                           <Activity className="h-3 w-3" />
@@ -200,9 +194,7 @@ export default function BlockchainDisplay({
                         <h5 className="text-muted-foreground mb-1 text-xs font-medium">
                           Nonce
                         </h5>
-                        <span className="font-mono text-sm">
-                          {block.nonce}
-                        </span>
+                        <span className="font-mono text-sm">{block.nonce}</span>
                       </div>
                       <div>
                         <h5 className="text-muted-foreground mb-1 text-xs font-medium">

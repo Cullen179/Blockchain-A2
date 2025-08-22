@@ -5,11 +5,13 @@ This project now uses Prisma as the ORM for SQLite database operations, providin
 ## 🚀 Quick Start
 
 ### 1. Install Dependencies
+
 ```bash
 pnpm install
 ```
 
 ### 2. Set up Database
+
 ```bash
 # Push schema to database (creates tables)
 pnpm run db:push
@@ -23,26 +25,28 @@ pnpm run db:demo
 
 ## 📋 Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `pnpm run db:push` | Push Prisma schema to database |
-| `pnpm run db:generate` | Generate Prisma client |
-| `pnpm run db:seed-prisma` | Seed database with Prisma |
-| `pnpm run db:demo` | Run ORM demonstration |
-| `pnpm run db:studio` | Open Prisma Studio (database GUI) |
+| Script                    | Description                       |
+| ------------------------- | --------------------------------- |
+| `pnpm run db:push`        | Push Prisma schema to database    |
+| `pnpm run db:generate`    | Generate Prisma client            |
+| `pnpm run db:seed-prisma` | Seed database with Prisma         |
+| `pnpm run db:demo`        | Run ORM demonstration             |
+| `pnpm run db:studio`      | Open Prisma Studio (database GUI) |
 
 ## 🏗️ Architecture
 
 ### Database Schema
+
 The blockchain database includes the following tables:
 
 - **blocks** - Blockchain blocks
 - **transactions** - Individual transactions
 - **transaction_inputs** - Transaction inputs
-- **transaction_outputs** - Transaction outputs  
+- **transaction_outputs** - Transaction outputs
 - **utxos** - Unspent Transaction Outputs
 
 ### Repository Pattern
+
 The project uses the Repository pattern with Prisma:
 
 ```typescript
@@ -58,6 +62,7 @@ const balance = await utxoRepo.getTotalValueByAddress('alice-wallet-123');
 ```
 
 ### Direct Prisma Client Usage
+
 ```typescript
 import { prisma } from '@/lib/prisma';
 
@@ -66,46 +71,50 @@ const transactions = await prisma.transaction.findMany({
   include: {
     utxos: true,
     inputs: true,
-    outputs: true
-  }
+    outputs: true,
+  },
 });
 
 // Aggregations
 const stats = await prisma.uTXO.aggregate({
   where: { isSpent: false },
   _sum: { amount: true },
-  _count: true
+  _count: true,
 });
 ```
 
 ## 🔧 Configuration
 
 ### Environment Variables
+
 ```env
 DATABASE_URL="file:./database/blockchain.db"
 ```
 
 ### Prisma Schema Location
+
 - Schema: `prisma/schema.prisma`
 - Generated Client: `src/generated/prisma/`
 
 ## 💡 Usage Examples
 
 ### 1. Basic Queries
+
 ```typescript
 // Find all unspent UTXOs
 const unspentUtxos = await prisma.uTXO.findMany({
-  where: { isSpent: false }
+  where: { isSpent: false },
 });
 
 // Get transaction with relations
 const transaction = await prisma.transaction.findUnique({
   where: { id: 'tx-001' },
-  include: { utxos: true, inputs: true, outputs: true }
+  include: { utxos: true, inputs: true, outputs: true },
 });
 ```
 
 ### 2. Repository Pattern
+
 ```typescript
 import { UTXORepository } from '@/repositories/UTXORepository';
 
@@ -118,7 +127,7 @@ const utxo = await utxoRepo.create({
   address: 'wallet-123',
   amount: 100,
   scriptPubKey: 'script',
-  isSpent: false
+  isSpent: false,
 });
 
 // Mark as spent
@@ -126,12 +135,13 @@ await utxoRepo.markAsSpent('tx-001', 0);
 ```
 
 ### 3. Advanced Queries
+
 ```typescript
 // Raw SQL with Prisma
 const balances = await prisma.$queryRaw<Array<{address: string, balance: number}>>`
   SELECT address, SUM(amount) as balance
-  FROM utxos 
-  WHERE is_spent = 0 
+  FROM utxos
+  WHERE is_spent = 0
   GROUP BY address
 `;
 
@@ -146,21 +156,25 @@ const result = await prisma.$transaction(async (tx) => {
 ## 🎯 Features
 
 ### ✅ Type Safety
+
 - Full TypeScript support
 - Auto-generated types from schema
 - Compile-time type checking
 
-### ✅ Development Experience  
+### ✅ Development Experience
+
 - Prisma Studio for database inspection
 - Auto-completion and IntelliSense
 - Database introspection
 
 ### ✅ Performance
+
 - Connection pooling
 - Query optimization
 - Efficient relation loading
 
 ### ✅ Migration Support
+
 - Schema versioning
 - Database migrations
 - Schema synchronization
@@ -168,17 +182,20 @@ const result = await prisma.$transaction(async (tx) => {
 ## 🛠️ Development Workflow
 
 ### Making Schema Changes
+
 1. Edit `prisma/schema.prisma`
 2. Run `pnpm run db:push` to apply changes
 3. Run `pnpm run db:generate` to update client
 
 ### Database Inspection
+
 ```bash
 # Open Prisma Studio
 pnpm run db:studio
 ```
 
 ### Testing
+
 ```bash
 # Run repository tests
 pnpm test
@@ -218,6 +235,7 @@ The project maintains both legacy and Prisma implementations:
 - Prisma: Uses ORM with type safety and modern features
 
 To fully migrate:
+
 1. Update API routes to use new repositories
 2. Replace legacy database calls with Prisma
 3. Remove legacy database utilities

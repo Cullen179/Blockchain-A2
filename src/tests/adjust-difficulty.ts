@@ -43,10 +43,18 @@ const bobAddr = generateTestAddress('bob');
 const charlieAddr = generateTestAddress('charlie');
 
 console.log('🔧 Test Setup:');
-console.log(`   Target Block Time: ${TARGET_BLOCK_TIME / 1000}s (${TARGET_BLOCK_TIME}ms)`);
-console.log(`   Fast Mining Simulation: ${FAST_MINING_TIME / 1000}s (${FAST_MINING_TIME}ms)`);
-console.log(`   Slow Mining Simulation: ${SLOW_MINING_TIME / 1000}s (${SLOW_MINING_TIME}ms)`);
-console.log(`   Adjustment Threshold: ±${BLOCKCHAIN_CONFIG.MINING.BLOCK_TIME_TARGET / 2}ms`);
+console.log(
+  `   Target Block Time: ${TARGET_BLOCK_TIME / 1000}s (${TARGET_BLOCK_TIME}ms)`
+);
+console.log(
+  `   Fast Mining Simulation: ${FAST_MINING_TIME / 1000}s (${FAST_MINING_TIME}ms)`
+);
+console.log(
+  `   Slow Mining Simulation: ${SLOW_MINING_TIME / 1000}s (${SLOW_MINING_TIME}ms)`
+);
+console.log(
+  `   Adjustment Threshold: ±${BLOCKCHAIN_CONFIG.MINING.BLOCK_TIME_TARGET / 2}ms`
+);
 console.log(`   Miner Address: ${minerAddr.substring(0, 20)}...`);
 
 // Helper function to create test wallet
@@ -225,11 +233,15 @@ async function simulateMining(
       );
 
       // Simulate difficulty adjustment logic matching the mining block time logic
-      const timeDifference = Math.abs(actualTime - BLOCKCHAIN_CONFIG.MINING.BLOCK_TIME_TARGET);
-      const adjustmentThreshold = BLOCKCHAIN_CONFIG.MINING.BLOCK_TIME_TARGET / 2;
+      const timeDifference = Math.abs(
+        actualTime - BLOCKCHAIN_CONFIG.MINING.BLOCK_TIME_TARGET
+      );
+      const adjustmentThreshold =
+        BLOCKCHAIN_CONFIG.MINING.BLOCK_TIME_TARGET / 2;
 
       if (timeDifference > adjustmentThreshold) {
-        const shouldIncrease = actualTime < BLOCKCHAIN_CONFIG.MINING.BLOCK_TIME_TARGET; // If mining was too fast, increase difficulty
+        const shouldIncrease =
+          actualTime < BLOCKCHAIN_CONFIG.MINING.BLOCK_TIME_TARGET; // If mining was too fast, increase difficulty
         await BlockRepository.adjustDifficulty(shouldIncrease, tx);
         console.log(
           `   📊 Difficulty ${shouldIncrease ? 'INCREASED' : 'DECREASED'} (mining was too ${shouldIncrease ? 'fast' : 'slow'})`

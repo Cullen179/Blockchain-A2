@@ -35,7 +35,6 @@ async function Wallets() {
 
   return (
     <div>
-      
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Wallets</h1>
@@ -74,7 +73,7 @@ function WalletCard({ wallet }: { wallet: IWallet }) {
           </CardTitle>
           <Badge variant="secondary">{wallet.utxos?.length || 0} UTXOs</Badge>
         </div>
-        <CardDescription className="flex items-center gap-2 w-60">
+        <CardDescription className="flex w-60 items-center gap-2">
           <span className="truncate font-mono text-xs">{wallet.address}</span>
           <CopyButton text={wallet.address} label="Address" />
         </CardDescription>

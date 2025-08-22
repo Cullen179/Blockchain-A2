@@ -1,4 +1,4 @@
-import { IBlock, ITransaction } from "./blocks";
+import { IBlock, ITransaction } from './blocks';
 
 export interface IBlockchain {
   chain: IBlock[];

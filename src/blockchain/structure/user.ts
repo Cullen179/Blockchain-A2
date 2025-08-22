@@ -1,4 +1,9 @@
-import { createHash, createSign, createVerify, generateKeyPairSync } from 'crypto';
+import {
+  createHash,
+  createSign,
+  createVerify,
+  generateKeyPairSync,
+} from 'crypto';
 import { ITransaction } from '@/types/blocks';
 
 export interface IUser {
@@ -24,7 +29,7 @@ export class User implements IUser {
     this.nonce = 0;
     this.createdAt = Date.now();
     this.transactionHistory = [];
-    
+
     // Generate key pair for digital signatures
     const keyPair = this.generateKeyPair();
     this.publicKey = keyPair.publicKey;
@@ -39,17 +44,17 @@ export class User implements IUser {
       modulusLength: 2048,
       publicKeyEncoding: {
         type: 'spki',
-        format: 'pem'
+        format: 'pem',
       },
       privateKeyEncoding: {
         type: 'pkcs8',
-        format: 'pem'
-      }
+        format: 'pem',
+      },
     });
 
     return {
       publicKey: keyPair.publicKey,
-      privateKey: keyPair.privateKey
+      privateKey: keyPair.privateKey,
     };
   }
 
@@ -64,7 +69,7 @@ export class User implements IUser {
       amount: transaction.amount,
       fee: transaction.fee,
       timestamp: transaction.timestamp,
-      data: transaction.data
+      data: transaction.data,
     });
 
     const sign = createSign('SHA256');
@@ -75,7 +80,10 @@ export class User implements IUser {
   /**
    * Verify a transaction signature
    */
-  public static verifySignature(transaction: ITransaction, publicKey: string): boolean {
+  public static verifySignature(
+    transaction: ITransaction,
+    publicKey: string
+  ): boolean {
     const transactionData = JSON.stringify({
       id: transaction.id,
       from: transaction.from,
@@ -83,7 +91,7 @@ export class User implements IUser {
       amount: transaction.amount,
       fee: transaction.fee,
       timestamp: transaction.timestamp,
-      data: transaction.data
+      data: transaction.data,
     });
 
     const verify = createVerify('SHA256');
@@ -94,13 +102,18 @@ export class User implements IUser {
   /**
    * Create a new transaction
    */
-  public createTransaction(to: string, amount: number, fee: number, data?: any): ITransaction {
+  public createTransaction(
+    to: string,
+    amount: number,
+    fee: number,
+    data?: any
+  ): ITransaction {
     if (this.balance < amount + fee) {
       throw new Error('Insufficient balance');
     }
 
     this.nonce++;
-    
+
     const transaction: Omit<ITransaction, 'signature'> = {
       id: `tx_${this.id}_${this.nonce}_${Date.now()}`,
       from: this.id,
@@ -108,14 +121,14 @@ export class User implements IUser {
       amount,
       fee,
       timestamp: Date.now(),
-      data
+      data,
     };
 
     const signature = this.signTransaction(transaction);
-    
+
     const signedTransaction: ITransaction = {
       ...transaction,
-      signature
+      signature,
     };
 
     this.transactionHistory.push(signedTransaction);
@@ -156,7 +169,7 @@ export class User implements IUser {
       publicKey: this.publicKey,
       balance: this.balance,
       nonce: this.nonce,
-      createdAt: this.createdAt
+      createdAt: this.createdAt,
     };
   }
 
@@ -196,7 +209,7 @@ export class User implements IUser {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -208,11 +221,11 @@ export class User implements IUser {
     user.nonce = userData.nonce;
     user.createdAt = userData.createdAt;
     user.publicKey = userData.publicKey;
-    
+
     if (userData.privateKey) {
       user.privateKey = userData.privateKey;
     }
-    
+
     return user;
   }
 
@@ -226,7 +239,7 @@ export class User implements IUser {
       balance: this.balance,
       nonce: this.nonce,
       createdAt: this.createdAt,
-      transactionHistory: this.transactionHistory
+      transactionHistory: this.transactionHistory,
     });
   }
 

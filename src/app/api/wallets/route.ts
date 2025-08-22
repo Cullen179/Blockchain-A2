@@ -23,13 +23,13 @@ export async function POST(request: NextRequest) {
         address,
         privateKey,
         publicKey,
-        balance
+        balance,
       },
       include: {
         utxos: {
-          where: { isSpent: false }
-        }
-      }
+          where: { isSpent: false },
+        },
+      },
     });
 
     return NextResponse.json(wallet, { status: 201 });

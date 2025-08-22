@@ -1,9 +1,11 @@
-import { BLOCKCHAIN_CONFIG } from "@/constants";
+import { BLOCKCHAIN_CONFIG } from '@/constants';
 
 export class ProofOfWork {
   private difficulty: number;
 
-  constructor(difficulty: number = BLOCKCHAIN_CONFIG.MINING.DEFAULT_DIFFICULTY) {
+  constructor(
+    difficulty: number = BLOCKCHAIN_CONFIG.MINING.DEFAULT_DIFFICULTY
+  ) {
     this.difficulty = difficulty;
   }
 
@@ -23,7 +25,6 @@ export class ProofOfWork {
    * @returns The new difficulty level
    */
   public adjustDifficulty(timeTaken: number): number {
-
     if (timeTaken < BLOCKCHAIN_CONFIG.MINING.BLOCK_TIME_TARGET) {
       this.difficulty = Math.min(
         BLOCKCHAIN_CONFIG.MINING.MAX_DIFFICULTY,
