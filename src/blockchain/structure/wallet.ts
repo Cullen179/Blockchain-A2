@@ -76,7 +76,7 @@ export class Wallet {
     }
   }
 
-  static async signTransaction(transaction: ITransaction, privateKey: string) {
+  static signTransaction(transaction: ITransaction, privateKey: string) {
     
       // Use the same method as verification for consistency
       const transactionData = Transaction.createTransactionHash(transaction);
