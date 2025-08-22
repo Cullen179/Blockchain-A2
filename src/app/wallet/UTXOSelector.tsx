@@ -1,26 +1,23 @@
 import { Coins, Hash } from 'lucide-react';
 import { toast } from 'sonner';
 
-
-
 import { useEffect } from 'react';
-import { Form, UseFormReturn } from 'react-hook-form';
+import { UseFormReturn } from 'react-hook-form';
 
-
-
-import { Wallet } from '@/blockchain/structure/wallet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { WALLET_BASE_URL } from '@/constants/api';
 import { fetchAPI } from '@/lib/fetch';
 import { formatBTC } from '@/lib/utils';
 import { ITransaction, IUTXO, IWallet } from '@/types/blocks';
-
-
-
-
 
 export default function UTXOSelector({
   wallet,
@@ -90,43 +87,44 @@ export default function UTXOSelector({
     );
   }
 
-    async function handleSignTransaction() {
-        try {
-            const { signedTransaction }: { signedTransaction: ITransaction } = await fetchAPI(
-              `${WALLET_BASE_URL}/sign`,
-              {
-                method: 'POST',
+  async function handleSignTransaction() {
+    try {
+      const { signedTransaction }: { signedTransaction: ITransaction } =
+        await fetchAPI(`${WALLET_BASE_URL}/sign`, {
+          method: 'POST',
 
-                data: {
-                  transaction: {
-                    id: '',
-                    from: wallet.address,
-                    to: form.getValues('toAddress'),
-                    amount: form.getValues('amount'),
-                    fee: form.getValues('fee'),
-                    inputs: selectedUTXOs.map((utxo) => ({
-                      previousTransactionId: utxo.transactionId,
-                      outputIndex: utxo.outputIndex,
-                      scriptSig: '',
-                    })),
-                    timestamp: Date.now(),
-                  } as ITransaction,
-                    privateKey: wallet.privateKey, 
-                    walletAddress: wallet.address, 
-                },
-              }
-            );
+          data: {
+            transaction: {
+              id: '',
+              from: wallet.address,
+              to: form.getValues('toAddress'),
+              amount: form.getValues('amount'),
+              fee: form.getValues('fee'),
+              inputs: selectedUTXOs.map(utxo => ({
+                previousTransactionId: utxo.transactionId,
+                outputIndex: utxo.outputIndex,
+                scriptSig: '',
+              })),
+              timestamp: Date.now(),
+            } as ITransaction,
+            privateKey: wallet.privateKey,
+            walletAddress: wallet.address,
+          },
+        });
 
-            selectedUTXOs.forEach((utxo, index) => {
-              setValue(`inputs.${index}.scriptSig`, signedTransaction.inputs[index].scriptSig);
-            });
-        } catch (error) {
-            console.error('Error signing transaction:', error);
-            toast.error(error instanceof Error ? error.message : 'Unknown error');
-        }
+        console.log('signedTransaction', signedTransaction);
+      selectedUTXOs.forEach((utxo, index) => {
+        setValue(
+          `inputs.${index}.scriptSig`,
+          signedTransaction.inputs[index].scriptSig
+        );
+      });
+    } catch (error) {
+      console.error('Error signing transaction:', error);
+      toast.error(error instanceof Error ? error.message : 'Unknown error');
     }
+  }
 
-    
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -135,7 +133,6 @@ export default function UTXOSelector({
           Total: {totalSelected.toLocaleString()} sats
         </Badge>
       </div>
-
       {selectedUTXOs.map((utxo, i) => (
         <div
           key={`${utxo.transactionId}:${utxo.outputIndex}`}
@@ -180,7 +177,7 @@ export default function UTXOSelector({
                       {...field}
                       type="number"
                       className="bg-muted"
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onChange={e => field.onChange(Number(e.target.value))}
                       value={field.value?.toString() || ''}
                     />
                   </FormControl>
@@ -202,7 +199,7 @@ export default function UTXOSelector({
                     {...field}
                     className="bg-muted w-full font-mono text-xs"
                     placeholder="ScriptSig"
-                    onChange={(e) => field.onChange(e.target.value)}
+                    onChange={e => field.onChange(e.target.value)}
                     value={field.value || ''}
                   />
                 </FormControl>
@@ -224,10 +221,10 @@ export default function UTXOSelector({
           </div>
         </div>
       ))}
-
       {/* Sign Transaction Button */}
       <Button className="w-full" type="button" onClick={handleSignTransaction}>
         Sign Transaction
-      </Button>    </div>
+      </Button>{' '}
+    </div>
   );
 }
