@@ -10,6 +10,47 @@ A comprehensive blockchain implementation built with Next.js, TypeScript, and Pr
 
 **Demo Link**: The demo of the web application can be view in this recap demo video in the Blockchain Tutorial from 17:57 - 28:44 - [Demo Link](https://rmiteduau-my.sharepoint.com/personal/jeff_nijsse_rmit_edu_vn/_layouts/15/stream.aspx?id=%2Fpersonal%2Fjeff%5Fnijsse%5Frmit%5Fedu%5Fvn%2FDocuments%2FRecordings%2FBlockchain%20Tutorial%20Meeting%20INTE264%5B12%5D%2D20250821%5F064337UTC%2DMeeting%20Recording%2Emp4&referrer=StreamWebApp%2EWeb&referrerScenario=AddressBarCopied%2Eview%2Eda49981e%2Dbf21%2D41d2%2D929f%2Dc39c87dc6ad2)
 
+## 📚 References and Acknowledgments
+
+This blockchain implementation was developed with reference to established protocols and standards, along with assistance from ChatGPT for technical guidance and best practices.
+
+### Technical References
+
+[1] "RFC 8017: PKCS #1: RSA Cryptography Specifications Version 2.2," *IETF Datatracker*. https://datatracker.ietf.org/doc/html/rfc8017
+
+[2] "Protocol documentation - Bitcoin Wiki." https://en.bitcoin.it/wiki/Protocol_documentation#Merkle_Trees
+
+[3] "Proof of work - Bitcoin Wiki." https://en.bitcoin.it/wiki/Proof_of_work
+
+[4] "UTXO - Bitcoin Wiki." https://en.bitcoin.it/wiki/UTXO
+
+[5] "Transaction replacement - Bitcoin Wiki." https://en.bitcoin.it/wiki/Transaction_replacement
+
+[6] "Consensus - Bitcoin Wiki." https://en.bitcoin.it/wiki/Consensus
+
+[7] Suthar, "Block validation," *What It Is, Process Steps, Examples, Importance*, Mar. 03, 2025. [https://www.wallstreetmojo.com/block-validation/#:~:text=Block Validation refers to a process in the,before adding them to the blockchain or database](https://www.wallstreetmojo.com/block-validation/#:~:text=Block%20Validation%20refers%20to%20a%20process%20in%20the,before%20adding%20them%20to%20the%20blockchain%20or%20database).
+
+[8] GeeksforGeeks, "Blockchain structure," *GeeksforGeeks*, Jul. 23, 2025. https://www.geeksforgeeks.org/blockchain-structure/
+
+[9] "Block chain — Bitcoin." https://developer.bitcoin.org/reference/block_chain.html
+
+[10] "Script - Bitcoin Wiki." https://en.bitcoin.it/wiki/Script
+
+[11] "Transaction - Bitcoin Wiki." https://en.bitcoin.it/wiki/Transaction#Output
+
+[12] "Wallet - Bitcoin Wiki." https://en.bitcoin.it/wiki/Wallet
+
+### AI Assistance
+
+This project was developed with assistance from **ChatGPT (OpenAI)** for:
+- Technical implementation guidance
+- Code structure and architecture decisions
+- Best practices for blockchain development
+- Testing strategy and  design
+- Documentation and code commenting
+
+---
+
 ## 📋 Table of Contents
 
 - [Overview](#overview)
@@ -207,3 +248,4 @@ Blockchain-A2/
 - **Testing**: Jest, tsx (TypeScript execution)
 - **UI Components**: Radix UI, Lucide React icons
 - **Development**: ESLint, Prettier, Turbopack
+
