@@ -17,14 +17,12 @@ export class BlockRepository {
   private static formatBlock(block: any): IBlock {
     return {
       hash: block.hash,
-      header: {
-        index: block.index,
-        timestamp: block.timestamp,
-        previousHash: block.previousHash,
-        merkleRoot: block.merkleRoot,
-        nonce: block.nonce,
-        difficulty: block.blockchain?.difficulty || 4, // Default difficulty if not available
-      },
+      index: block.index,
+      timestamp: block.timestamp,
+      previousHash: block.previousHash,
+      merkleRoot: block.merkleRoot,
+      nonce: block.nonce,
+      difficulty: block.blockchain?.difficulty || 4, // Default difficulty if not available
       transactions: block.transactions?.map((tx: any) => ({
         id: tx.id,
         from: tx.from,
@@ -45,10 +43,6 @@ export class BlockRepository {
         })) || [],
       })) || [],
       size: block.size,
-      transactionCount: block.transactions?.length || 0,
-      nonce: block.nonce,
-      timestamp: block.timestamp,
-      merkleRoot: block.merkleRoot,
     };
   }
 
@@ -199,7 +193,7 @@ export class BlockRepository {
           blockchain: true,
         },
       });
-      
+
       // update the transactions blockhash
       await Promise.all(
         transactions.map(async (transaction: ITransaction) =>
@@ -242,6 +236,37 @@ export class BlockRepository {
     } catch (error) {
       console.error('Error fetching block:', error);
       throw new Error('Failed to fetch block');
+    }
+  }
+
+  // Invalidate subsequent blocks in a blockchain
+  static async invalidateSubsequentBlocks(blockHash: string, tx?: any): Promise<void> {
+    try {
+      const blockchain = await this.getDefaultBlockchain();
+      if (!blockchain) {
+        throw new Error('Blockchain not found');
+      }
+
+      if (!blockchain.blocks || blockchain.blocks?.length === 0) {
+        throw new Error('No blocks found in the blockchain');
+      }
+
+      let isSubsequent: boolean = false;
+      blockchain.blocks.forEach(async (block) => {
+        if (block.hash === blockHash) {
+          isSubsequent = true;
+        }
+        
+        if (isSubsequent) {
+          // delete the block
+          await (tx || prisma).block.delete({
+            where: { hash: block.hash },
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Error invalidating subsequent blocks:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to invalidate subsequent blocks');
     }
   }
 
@@ -328,7 +353,7 @@ export class BlockRepository {
 
   static async adjustDifficulty(
     increase: boolean = false,
-    tx: any
+    tx?: any
   ): Promise<void> {
     try {
       const blockchain = await this.getDefaultBlockchain();
@@ -337,7 +362,7 @@ export class BlockRepository {
       }
 
       const newDifficulty = increase ? Math.min(10, blockchain.difficulty + 1) : Math.max(1, blockchain.difficulty - 1);
-      await tx.blockchain.update({
+      await (tx || prisma).blockchain.update({
         where: { id: blockchain.id },
         data: { difficulty: newDifficulty },
       });

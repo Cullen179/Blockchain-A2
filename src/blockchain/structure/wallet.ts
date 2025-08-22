@@ -10,19 +10,6 @@ import { Transaction } from './transaction';
 import { UTXOManager } from './utxo';
 
 export class Wallet {
-  // public address: string;
-  // public privateKey: string;
-  // public publicKey: string;
-  // public balance: number;
-  // public utxos: IUTXO[];
-
-  // constructor(address: string, privateKey: string, publicKey: string, initialBalance: number = 0) {
-  //   this.address = address;
-  //   this.privateKey = privateKey;
-  //   this.publicKey = publicKey;
-  //   this.balance = initialBalance;
-  //   this.utxos = [];
-  // }
 
   static async getAllWallets() {
     try {
