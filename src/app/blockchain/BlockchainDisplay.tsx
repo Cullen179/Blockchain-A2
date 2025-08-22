@@ -40,7 +40,7 @@ export default function BlockchainDisplay({
 
   const blocks = blockchain.blocks || [];
   const totalTransactions = blocks.reduce(
-    (sum, block) => sum + block.transactionCount,
+    (sum, block) => sum + block.transactions.length,
     0
   );
   const averageBlockSize =
@@ -80,7 +80,7 @@ export default function BlockchainDisplay({
             <div className="text-2xl font-bold">{blocks.length}</div>
             <p className="text-muted-foreground text-xs">
               {blocks.length > 0
-                ? `Latest: #${latestBlock?.header.index}`
+                ? `Latest: #${latestBlock?.index}`
                 : 'No blocks yet'}
             </p>
           </CardContent>
@@ -145,7 +145,7 @@ export default function BlockchainDisplay({
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3">
                       <Badge variant={index === 0 ? 'default' : 'secondary'}>
-                        Block #{block.header.index}
+                        Block #{block.index}
                       </Badge>
                       {index === 0 && <Badge variant="outline">Genesis</Badge>}
                       {index === blocks.length - 1 && (
@@ -163,13 +163,13 @@ export default function BlockchainDisplay({
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {new Date(
-                            block.header.timestamp * 1000
+                            block.timestamp * 1000
                           ).toLocaleString()}
                         </div>
                         <div className="flex items-center gap-1">
                           <Activity className="h-3 w-3" />
-                          {block.transactionCount} transaction
-                          {block.transactionCount !== 1 ? 's' : ''}
+                          {block.transactions.length} transaction
+                          {block.transactions.length !== 1 ? 's' : ''}
                         </div>
                         <div className="flex items-center gap-1">
                           <Database className="h-3 w-3" />
@@ -185,7 +185,7 @@ export default function BlockchainDisplay({
                           Previous Hash
                         </h5>
                         <code className="bg-muted block rounded p-1 text-xs">
-                          {block.header.previousHash}
+                          {block.previousHash}
                         </code>
                       </div>
                       <div>
@@ -193,7 +193,7 @@ export default function BlockchainDisplay({
                           Merkle Root
                         </h5>
                         <code className="bg-muted block rounded p-1 text-xs">
-                          {block.header.merkleRoot}
+                          {block.merkleRoot}
                         </code>
                       </div>
                       <div>
@@ -201,7 +201,7 @@ export default function BlockchainDisplay({
                           Nonce
                         </h5>
                         <span className="font-mono text-sm">
-                          {block.header.nonce}
+                          {block.nonce}
                         </span>
                       </div>
                       <div>
@@ -209,7 +209,7 @@ export default function BlockchainDisplay({
                           Difficulty
                         </h5>
                         <span className="font-mono text-sm">
-                          {block.header.difficulty}
+                          {block.difficulty}
                         </span>
                       </div>
                     </div>
